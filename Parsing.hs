@@ -7,6 +7,22 @@ import Expr (Command(..), Expr(..)) -- Assuming Expr and Command types are defin
 
 infixr 5 |||
 
+pIf :: Parser Expr
+pIf = do
+    _ <- string "if"
+    _ <- space
+    cond <- pExpr
+    _ <- space
+    _ <- string "then"
+    _ <- space
+    thenExpr <- pExpr
+    _ <- space
+    _ <- string "else"
+    _ <- space
+    elseExpr <- pExpr
+    return $ If cond thenExpr elseExpr
+
+
 newtype Parser a = P (String -> [(a, String)])
 
 chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a

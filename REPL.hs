@@ -1,49 +1,61 @@
 module REPL where
 
-import Expr -- This imports the Value type from Expr.hs
+import Expr
 import Parsing
+import System.IO (readFile)
+import Control.Monad (foldM)
 
--- No longer need to define Value here since it's imported from Expr
-data LState = LState { vars :: [(Name, Value)] }
+data LState = LState { vars :: VarTree }
 
 initLState :: LState
-initLState = LState []
+initLState = LState Empty
 
-updateVars :: Name -> Value -> [(Name, Value)] -> [(Name, Value)]
-updateVars name val [] = [(name, val)]
-updateVars name val (x:xs)
-    | fst x == name = (name, val) : xs
-    | otherwise = x : updateVars name val xs
+-- Helper function to parse commands
+parseCommand :: String -> Either String Command
+parseCommand line = case parse pCommand line of
+    [(cmd, "")] -> Right cmd
+    _ -> Left "Parse error."
 
-dropVar :: Name -> [(Name, Value)] -> [(Name, Value)]
-dropVar name = filter (\(n, _) -> n /= name)
-
-process :: LState -> Command -> IO ()
+-- Process commands: Set, Print, and ReadFile
+process :: LState -> Command -> IO LState
 process st (Set var expr) = do
-    let evalResult = eval (vars st) expr
-    case evalResult of
+    let valResult = eval (vars st) expr
+    case valResult of
         Right val -> do
-            let vars' = updateVars var val (vars st)
-            repl (LState vars')
-        Left errorMsg -> do
-            putStrLn ("Error: " ++ errorMsg)
-            repl st
-process st (Print expr) = do
-    let evalResult = eval (vars st) expr
-    case evalResult of
-        Right val -> do
-            putStrLn ("Result: " ++ show val)
-            repl st
-        Left errorMsg -> do
-            putStrLn ("Error: " ++ errorMsg)
-            repl st
+            let updatedVars = insert var val (vars st)
+            return st { vars = updatedVars }
+        Left errMsg -> do
+            putStrLn errMsg
+            return st
 
+process st (Print expr) = do
+    let valResult = eval (vars st) expr
+    case valResult of
+        Right val -> do
+            print val
+            return st
+        Left errMsg -> do
+            putStrLn errMsg
+            return st
+
+process st (ReadFile filePath) = do
+    contents <- readFile filePath
+    let linesOfCommands = lines contents
+    foldM processCommand st linesOfCommands
+  where
+    processCommand accSt line = case parseCommand line of
+        Right cmd -> process accSt cmd
+        Left errorMsg -> putStrLn ("Error processing command from file: " ++ errorMsg) >> return accSt
+
+-- REPL loop
 repl :: LState -> IO ()
 repl st = do
     putStr "> "
     inp <- getLine
-    case parse pCommand inp of
-        [(cmd, "")] -> process st cmd
-        _ -> do
-            putStrLn "Error: Parse error."
+    case parseCommand inp of
+        Right cmd -> do
+            newState <- process st cmd
+            repl newState
+        Left errorMsg -> do
+            putStrLn ("Error: " ++ errorMsg)
             repl st
