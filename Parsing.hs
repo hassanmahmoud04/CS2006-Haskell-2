@@ -1,204 +1,153 @@
+{-
+Functional parsing library from chapter 8 of Programming in Haskell,
+Graham Hutton, Cambridge University Press, 2007.
+
+Minor changes by Edwin Brady
+-}
+
 module Parsing where
 
 import Data.Char
 import Control.Monad
 import Control.Applicative hiding (many)
-import Expr (Command(..), Expr(..)) -- Assuming Expr and Command types are defined here
 
 infixr 5 |||
 
-newtype Parser a = P (String -> [(a, String)])
+{-
+The monad of parsers
+--------------------
+-}
 
-chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
-chainl1 p op = do { a <- p; rest a }
-  where
-    rest a = (do f <- op
-                 b <- p
-                 rest (f a b))
-             <|> return a
+newtype Parser a              =  P (String -> [(a,String)])
 
 instance Functor Parser where
-   fmap f p = P (\inp -> case parse p inp of
-                          [] -> []
-                          result -> map (\(v, out) -> (f v, out)) result)
+   fmap f p = do p' <- p
+                 return (f p')
 
 instance Applicative Parser where
-   pure v = P (\inp -> [(v, inp)])
-   f <*> a = P (\inp -> case parse f inp of
-                         [] -> []
-                         result -> concatMap (\(g, out) -> parse (fmap g a) out) result)
+   pure = return
+   f <*> a = do f' <- f
+                a' <- a
+                return (f' a')
 
 instance Monad Parser where
-   return = pure
-   p >>= f = P (\inp -> concatMap (\(v, out) -> parse (f v) out) (parse p inp))
+   return v                   =  P (\inp -> [(v,inp)])
+   p >>= f                    =  P (\inp -> case parse p inp of
+                                               []        -> []
+                                               [(v,out)] -> parse (f v) out)
 
 instance Alternative Parser where
-   empty = P (const [])
-   p <|> q = P (\inp -> case parse p inp of
-                         [] -> parse q inp
-                         res -> res)
+   empty = mzero
+   p <|> q = p ||| q
 
 instance MonadPlus Parser where
-   mzero = empty
-   mplus = (<|>)
+   mzero                      =  P (\inp -> [])
+   p `mplus` q                =  P (\inp -> case parse p inp of
+                                               []        -> parse q inp
+                                               [(v,out)] -> [(v,out)])
 
-failure :: Parser a
-failure = mzero
+{-
+Basic parsers
+-------------
+-}
 
-item :: Parser Char
-item = P (\inp -> case inp of
-                   [] -> []
-                   (x:xs) -> [(x, xs)])
+failure                       :: Parser a
+failure                       =  mzero
 
-parse :: Parser a -> String -> [(a, String)]
-parse (P p) inp = p inp
+item                          :: Parser Char
+item                          =  P (\inp -> case inp of
+                                               []     -> []
+                                               (x:xs) -> [(x,xs)])
 
-(|||) :: Parser a -> Parser a -> Parser a
-p ||| q = p `mplus` q
+parse                         :: Parser a -> String -> [(a,String)]
+parse (P p) inp               =  p inp
 
-sat :: (Char -> Bool) -> Parser Char
-sat p = do x <- item
-           if p x then return x else failure
+{-
+Choice
+------
+-}
 
-digit :: Parser Char
-digit = sat isDigit
+(|||)                         :: Parser a -> Parser a -> Parser a
+p ||| q                       =  p `mplus` q
 
-lower :: Parser Char
-lower = sat isLower
+{-
+Derived primitives
+------------------
+-}
 
-upper :: Parser Char
-upper = sat isUpper
+sat                           :: (Char -> Bool) -> Parser Char
+sat p                         =  do x <- item
+                                    if p x then return x else failure
 
-letter :: Parser Char
-letter = sat isAlpha
+digit                         :: Parser Char
+digit                         =  sat isDigit
 
-alphanum :: Parser Char
-alphanum = sat isAlphaNum
+lower                         :: Parser Char
+lower                         =  sat isLower
 
-char :: Char -> Parser Char
-char x = sat (== x)
+upper                         :: Parser Char
+upper                         =  sat isUpper
 
-string :: String -> Parser String
-string [] = return []
-string (x:xs) = do char x
-                   string xs
-                   return (x:xs)
+letter                        :: Parser Char
+letter                        =  sat isAlpha
 
-many :: Parser a -> Parser [a]
-many p = many1 p ||| return []
+alphanum                      :: Parser Char
+alphanum                      =  sat isAlphaNum
 
-many1 :: Parser a -> Parser [a]
-many1 p = do v <- p
-             vs <- many p
-             return (v:vs)
+char                          :: Char -> Parser Char
+char x                        =  sat (== x)
 
-ident :: Parser String
-ident = do x <- lower
-           xs <- many alphanum
-           return (x:xs)
+string                        :: String -> Parser String
+string []                     =  return []
+string (x:xs)                 =  do char x
+                                    string xs
+                                    return (x:xs)
 
-nat :: Parser Int
-nat = do xs <- many1 digit
-         return (read xs)
+many                          :: Parser a -> Parser [a]
+many p                        =  many1 p ||| return []
 
-int :: Parser Int
-int = do char '-'
-         n <- nat
-         return (-n)
-       ||| nat
+many1                         :: Parser a -> Parser [a]
+many1 p                       =  do v  <- p
+                                    vs <- many p
+                                    return (v:vs)
 
-float :: Parser Float
-float = do whole <- many1 digit
-           char '.'
-           fractional <- many1 digit
-           return $ read (whole ++ "." ++ fractional)
+ident                         :: Parser String
+ident                         =  do x  <- lower
+                                    xs <- many alphanum
+                                    return (x:xs)
 
-space :: Parser ()
-space = do many (sat isSpace)
-           return ()
+nat                           :: Parser Int
+nat                           =  do xs <- many1 digit
+                                    return (read xs)
 
-token :: Parser a -> Parser a
-token p = do space
-             v <- p
-             space
-             return v
+int                           :: Parser Int
+int                           =  do char '-'
+                                    n <- nat
+                                    return (-n)
+                                  ||| nat
 
-identifier :: Parser String
-identifier = token ident
+space                         :: Parser ()
+space                         =  do many (sat isSpace)
+                                    return ()
+{-
+Ignoring spacing
+----------------
+-}
 
-natural :: Parser Int
-natural = token nat
+token                         :: Parser a -> Parser a
+token p                       =  do space
+                                    v <- p
+                                    space
+                                    return v
 
-integer :: Parser Int
-integer = token int
+identifier                    :: Parser String
+identifier                    =  token ident
 
-symbol :: String -> Parser String
-symbol xs = token (string xs)
+natural                       :: Parser Int
+natural                       =  token nat
 
--- New parser for commands
-pCommand :: Parser Command
-pCommand = pSet <|> pPrint
-  where
-    pSet = do
-        string "set"
-        space
-        name <- identifier
-        space
-        char '='
-        space
-        expr <- pExpr -- Assuming you have a function pExpr for parsing expressions
-        return (Set name expr)
-    pPrint = do
-        string "print"
-        space
-        expr <- pExpr
-        return (Print expr)
+integer                       :: Parser Int
+integer                       =  token int
 
-pExpr :: Parser Expr
-pExpr = pTerm `chainl1` addop
-
-pTerm :: Parser Expr
-pTerm = pFactor `chainl1` mulop
-
-pFactor :: Parser Expr
-pFactor = pFloat <|> pInt <|> pParens pExpr <|> pNeg <|> pAbs <|> pMod <|> pPow
-  where
-    pFloat = do
-        n <- float
-        return $ ValFloat n
-    pInt = do
-        n <- integer
-        return $ ValInt n
-    pParens p = do
-        symbol "("
-        x <- p
-        symbol ")"
-        return x
-    pNeg = do
-        char '-'
-        x <- pFactor
-        return $ Neg x
-    pAbs = do
-        string "abs"
-        space
-        x <- pFactor
-        return $ Abs x
-    pMod = do
-        string "mod"
-        space
-        x <- pFactor
-        symbol ","
-        y <- pFactor
-        return $ Mod x y
-    pPow = do
-        x <- pFactor
-        symbol "^"
-        y <- pFactor
-        return $ Pow x y
-
-addop :: Parser (Expr -> Expr -> Expr)
-addop = do{ symbol "+"; return Add } <|> do{ symbol "-"; return Sub }
-
-mulop :: Parser (Expr -> Expr -> Expr)
-mulop = do{ symbol "*"; return Mul } <|> do{ symbol "/"; return Div }
-
+symbol                        :: String -> Parser String
+symbol xs                     =  token (string xs)

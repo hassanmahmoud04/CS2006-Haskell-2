@@ -1,91 +1,67 @@
 module Expr where
 
-import Data.Char (digitToInt)
-import Control.Applicative ((<|>))
+import Parsing
 
 type Name = String
 
-data Value = IntVal Int | FloatVal Float deriving (Show, Eq)
-
--- Extending Expr to include subtraction, multiplication, division, and support for Floats
+-- At first, 'Expr' contains only addition, conversion to strings, and integer
+-- values. You will need to add other operations, and variables
 data Expr = Add Expr Expr
-          | Sub Expr Expr
-          | Mul Expr Expr
-          | Div Expr Expr
-          | Abs Expr
-          | Mod Expr Expr
-          | Pow Expr Expr
-          | Neg Expr
-          | ValInt Int
-          | ValFloat Float
           | ToString Expr
-          deriving Show
+          | Val Int
+  deriving Show
 
--- REPL commands remain unchanged
-data Command = Set Name Expr
-             | Print Expr
-             deriving Show
+-- These are the REPL commands
+data Command = Set Name Expr -- assign an expression to a variable name
+             | Print Expr    -- evaluate an expression and print the result
+  deriving Show
 
--- The updated eval function
-eval :: [(Name, Value)] -> Expr -> Either String Value
-eval vars (ValInt x) = Right $ IntVal x
-eval vars (ValFloat x) = Right (FloatVal x)
-eval vars (Add x y) = binOp (+) (+) vars x y
-eval vars (Sub x y) = binOp (-) (-) vars x y
-eval vars (Mul x y) = binOp (*) (*) vars x y
-eval vars (Div x y) = binOpF (/) vars x y
-eval vars (Abs x) = absOp vars x
-eval vars (Mod x y) = modOp vars x y
-eval vars (Pow x y) = powOp vars x y
-eval vars (Neg x) = negOp vars x
-eval vars (ToString x) = Left "ToString operation not supported"
+eval :: [(Name, Int)] -> -- Variable name to value mapping
+        Expr -> -- Expression to evaluate
+        Maybe Int -- Result (if no errors such as missing variables)
+eval vars (Val x) = Just x -- for values, just give the value directly
+eval vars (Add x y) = Nothing -- return an error (because it's not implemented yet!)
+eval vars (ToString x) = Nothing
 
--- Helper functions for operations
-binOp :: (Int -> Int -> Int) -> (Float -> Float -> Float) -> [(Name, Value)] -> Expr -> Expr -> Either String Value
-binOp fInt fFloat vars x y = do
-    xVal <- eval vars x
-    yVal <- eval vars y
-    case (xVal, yVal) of
-        (IntVal xi, IntVal yi) -> Right $ IntVal (fInt xi yi)
-        (FloatVal xf, FloatVal yf) -> Right $ FloatVal (fFloat xf yf)
-        _ -> Left "Type mismatch in binary operation"
+digitToInt :: Char -> Int
+digitToInt x = fromEnum x - fromEnum '0'
 
-binOpF :: (Float -> Float -> Float) -> [(Name, Value)] -> Expr -> Expr -> Either String Value
-binOpF f vars x y = do
-    xVal <- eval vars x
-    yVal <- eval vars y
-    case (xVal, yVal) of
-        (FloatVal xf, FloatVal yf) -> if yf == 0 then Left "Division by zero error" else Right $ FloatVal (f xf yf)
-        _ -> Left "Type mismatch in binary operation"
+pCommand :: Parser Command
+pCommand = do t <- letter
+              char '='
+              e <- pExpr
+              return (Set [t] e)
+            ||| do string "print"
+                   space
+                   e <- pExpr
+                   return (Print e)
 
-absOp :: [(Name, Value)] -> Expr -> Either String Value
-absOp vars x = do
-    xVal <- eval vars x
-    case xVal of
-        IntVal xi -> Right $ IntVal (abs xi)
-        FloatVal xf -> Right $ FloatVal (abs xf)
+pExpr :: Parser Expr
+pExpr = do t <- pTerm
+           do char '+'
+              e <- pExpr
+              return (Add t e)
+            ||| do char '-'
+                   e <- pExpr
+                   error "Subtraction not yet implemented!" 
+                 ||| return t
 
-modOp :: [(Name, Value)] -> Expr -> Expr -> Either String Value
-modOp vars x y = do
-    xVal <- eval vars x
-    yVal <- eval vars y
-    case (xVal, yVal) of
-        (IntVal xi, IntVal yi) -> if yi == 0 then Left "Modulus by zero error" else Right $ IntVal (xi `mod` yi)
-        _ -> Left "Modulus operation requires integer operands"
+pFactor :: Parser Expr
+pFactor = do d <- digit
+             return (Val (digitToInt d))
+           ||| do v <- letter
+                  error "Variables not yet implemented" 
+                ||| do char '('
+                       e <- pExpr
+                       char ')'
+                       return e
 
-powOp :: [(Name, Value)] -> Expr -> Expr -> Either String Value
-powOp vars x y = do
-    xVal <- eval vars x
-    yVal <- eval vars y
-    case (xVal, yVal) of
-        (FloatVal xf, FloatVal yf) -> Right $ FloatVal (xf ** yf)
-        _ -> Left "Exponentiation type mismatch"
-
-negOp :: [(Name, Value)] -> Expr -> Either String Value
-negOp vars x = do
-    xVal <- eval vars x
-    case xVal of
-        IntVal xi -> Right $ IntVal (negate xi)
-        FloatVal xf -> Right $ FloatVal (negate xf)
-
--- The parser definitions remain unchanged, ensuring they are compatible with these operations
+pTerm :: Parser Expr
+pTerm = do f <- pFactor
+           do char '*'
+              t <- pTerm
+              error "Multiplication not yet implemented" 
+            ||| do char '/'
+                   t <- pTerm
+                   error "Division not yet implemented" 
+                 ||| return f
