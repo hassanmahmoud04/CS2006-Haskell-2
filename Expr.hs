@@ -7,8 +7,12 @@ type Name = String
 -- At first, 'Expr' contains only addition, conversion to strings, and integer
 -- values. You will need to add other operations, and variables
 data Expr = Add Expr Expr
+          | Subtract Expr Expr
+          | Multiply Expr Expr
+          | Divide Expr Expr
           | ToString Expr
           | Val Int
+          | Var Name
   deriving Show
 
 -- These are the REPL commands
@@ -16,21 +20,38 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
   deriving Show
 
-eval :: [(Name, Int)] -> -- Variable name to value mapping
-        Expr -> -- Expression to evaluate
-        Maybe Int -- Result (if no errors such as missing variables)
+eval :: [(Name, Int)] -> Expr -> Maybe Int
 eval vars (Val x) = Just x -- for values, just give the value directly
-eval vars (Add x y) = Nothing -- return an error (because it's not implemented yet!)
+eval vars (Add x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    return (a + b)
+eval vars (Subtract x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    return (a - b)
+eval vars (Multiply x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    return (a * b)
+eval vars (Divide x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    if b == 0 then Nothing
+              else return (a `div` b)
 eval vars (ToString x) = Nothing
+eval vars (Var n) = lookup n vars
 
 digitToInt :: Char -> Int
 digitToInt x = fromEnum x - fromEnum '0'
 
 pCommand :: Parser Command
-pCommand = do t <- letter
+pCommand = do t <- many1 letter
+              space
               char '='
+              space
               e <- pExpr
-              return (Set [t] e)
+              return (Set t e)
             ||| do string "print"
                    space
                    e <- pExpr
@@ -43,14 +64,14 @@ pExpr = do t <- pTerm
               return (Add t e)
             ||| do char '-'
                    e <- pExpr
-                   error "Subtraction not yet implemented!" 
+                   return (Subtract t e)
                  ||| return t
 
 pFactor :: Parser Expr
 pFactor = do d <- digit
              return (Val (digitToInt d))
            ||| do v <- letter
-                  error "Variables not yet implemented" 
+                  return (Var [v])
                 ||| do char '('
                        e <- pExpr
                        char ')'
@@ -60,8 +81,8 @@ pTerm :: Parser Expr
 pTerm = do f <- pFactor
            do char '*'
               t <- pTerm
-              error "Multiplication not yet implemented" 
+              return (Multiply f t)
             ||| do char '/'
                    t <- pTerm
-                   error "Division not yet implemented" 
+                   return (Divide f t) 
                  ||| return f
