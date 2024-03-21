@@ -40,25 +40,25 @@ eval vars (Divide x y) = do
     b <- eval vars y
     if b == 0 then Nothing
               else return (a `div` b)
-eval vars (ToString x) = Nothing
 eval vars (Var n) = lookup n vars
+eval vars (ToString x) = Nothing
 
 digitToInt :: Char -> Int
 digitToInt x = fromEnum x - fromEnum '0'
 
 pCommand :: Parser Command
 pCommand = do t <- many1 letter
-              space
+              spaces
               char '='
-              space
+              spaces
               e <- pExpr
               return (Set t e)
             ||| do string "print"
-                   space
+                   spaces
                    e <- pExpr
                    return (Print e)
-                   ||| do string "quit"
-                          return Quit
+                 ||| do string "quit"
+                        return Quit
 
 pExpr :: Parser Expr
 pExpr = do t <- pTerm

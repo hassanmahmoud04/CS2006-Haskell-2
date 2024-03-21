@@ -12,21 +12,27 @@ initLState = LState []
 -- that name and value added.
 -- If it already exists, remove the old value
 updateVars :: Name -> Int -> [(Name, Int)] -> [(Name, Int)]
-updateVars = undefined
+updateVars name val env = (name, val) : filter ((/= name) . fst) env
 
 -- Return a new set of variables with the given name removed
 dropVar :: Name -> [(Name, Int)] -> [(Name, Int)]
-dropVar = undefined
+dropVar name = filter ((/= name) . fst)
 
 process :: LState -> Command -> IO ()
-process st (Set var e) 
-     = do let st' = undefined
-          -- st' should include the variable set to the result of evaluating e
+process st (Set var e) = case eval (vars st) e of
+     Just val -> do
+          let st' = LState $ updateVars var val (vars st)
           repl st'
-process st (Print e) 
-     = do let st' = undefined
-          -- Print the result of evaluation
-          repl st'
+     Nothing -> do
+          putStrLn "Error: Command evaluation failed."
+          repl st
+process st (Print e) = case eval (vars st) e of
+     Just val -> do
+          print val
+          repl st
+     Nothing -> do
+          putStrLn "Error: Command evaluation failed."
+          repl st
 process st Quit = do return ()
 
 -- Read, Eval, Print Loop
