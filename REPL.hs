@@ -28,7 +28,7 @@ process st (Set var e) = case eval (vars st) e of
           repl st
 process st (Print e) = case eval (vars st) e of
      Just val -> do
-          print val
+          putStrLn (show val)
           repl st
      Nothing -> do
           putStrLn "Error: Command evaluation failed."
