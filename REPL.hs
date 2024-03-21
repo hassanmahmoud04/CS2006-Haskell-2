@@ -1,49 +1,52 @@
 module REPL where
 
-import Expr -- This imports the Value type from Expr.hs
+import Expr
 import Parsing
 
--- No longer need to define Value here since it's imported from Expr
-data LState = LState { vars :: [(Name, Value)] }
+data LState = LState { vars :: [(Name, Int)] }
 
 initLState :: LState
 initLState = LState []
 
-updateVars :: Name -> Value -> [(Name, Value)] -> [(Name, Value)]
-updateVars name val [] = [(name, val)]
-updateVars name val (x:xs)
-    | fst x == name = (name, val) : xs
-    | otherwise = x : updateVars name val xs
+-- Given a variable name and a value, return a new set of variables with
+-- that name and value added.
+-- If it already exists, remove the old value
+updateVars :: Name -> Int -> [(Name, Int)] -> [(Name, Int)]
+updateVars name val env = (name, val) : filter ((/= name) . fst) env
 
-dropVar :: Name -> [(Name, Value)] -> [(Name, Value)]
-dropVar name = filter (\(n, _) -> n /= name)
+
+-- Return a new set of variables with the given name removed
+dropVar :: Name -> [(Name, Int)] -> [(Name, Int)]
+dropVar name = filter ((/= name) . fst)
+
 
 process :: LState -> Command -> IO ()
-process st (Set var expr) = do
-    let evalResult = eval (vars st) expr
-    case evalResult of
-        Right val -> do
-            let vars' = updateVars var val (vars st)
-            repl (LState vars')
-        Left errorMsg -> do
-            putStrLn ("Error: " ++ errorMsg)
-            repl st
-process st (Print expr) = do
-    let evalResult = eval (vars st) expr
-    case evalResult of
-        Right val -> do
-            putStrLn ("Result: " ++ show val)
-            repl st
-        Left errorMsg -> do
-            putStrLn ("Error: " ++ errorMsg)
-            repl st
+process st (Set var expr) = case eval (vars st) expr of
+    Just val -> do
+        let st' = LState $ updateVars var val (vars st)
+        repl st'
+    Nothing -> do
+        putStrLn "Error: Evaluation failed."
+        repl st
+process st (Print expr) = case eval (vars st) expr of
+    Just val -> do
+        print val
+        repl st
+    Nothing -> do
+        putStrLn "Error: Evaluation failed."
+        repl st
+
+
+-- Read, Eval, Print Loop
+-- This reads and parses the input using the pCommand parser, and calls
+-- 'process' to process the command.
+-- 'process' will call 'repl' when done, so the system loops.
 
 repl :: LState -> IO ()
-repl st = do
-    putStr "> "
-    inp <- getLine
-    case parse pCommand inp of
-        [(cmd, "")] -> process st cmd
-        _ -> do
-            putStrLn "Error: Parse error."
-            repl st
+repl st = do putStr ("> ")
+             inp <- getLine
+             case parse pCommand inp of
+                  [(cmd, "")] -> -- Must parse entire input
+                          process st cmd
+                  _ -> do putStrLn "Parse error"
+                          repl st
