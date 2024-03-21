@@ -43,18 +43,21 @@ eval vars (Divide x y) = do
 eval vars (Var n) = lookup n vars
 eval vars (ToString x) = Nothing
 
-digitToInt :: Char -> Int
-digitToInt x = fromEnum x - fromEnum '0'
+digitToInt :: [Char] -> Int
+digitToInt [x] = fromEnum x - fromEnum '0'
+digitToInt (x:xs) = read (show (fromEnum x - fromEnum '0') ++ show (digitToInt xs)) :: Int
+-- readDigit :: [Char] -> Int
+-- readDigit 
 
 pCommand :: Parser Command
 pCommand = do t <- many1 letter
-              spaces
+              space
               char '='
-              spaces
+              space
               e <- pExpr
               return (Set t e)
             ||| do string "print"
-                   spaces
+                   space
                    e <- pExpr
                    return (Print e)
                  ||| do string "quit"
@@ -71,10 +74,10 @@ pExpr = do t <- pTerm
                  ||| return t
 
 pFactor :: Parser Expr
-pFactor = do d <- digit
+pFactor = do d <- many1 digit
              return (Val (digitToInt d))
-           ||| do v <- letter
-                  return (Var [v])
+           ||| do v <- many1 letter
+                  return (Var v)
                 ||| do char '('
                        e <- pExpr
                        char ')'

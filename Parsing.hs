@@ -130,10 +130,6 @@ space                         :: Parser ()
 space                         =  do many (sat isSpace)
                                     return ()
 
-spaces                        :: Parser ()
-spaces                        =  do many (char ' ')
-                                    return ()
-
 {-
 Ignoring spacing
 ----------------
