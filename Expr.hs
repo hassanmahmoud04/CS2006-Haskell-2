@@ -18,6 +18,7 @@ data Expr = Add Expr Expr
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
+             | Quit
   deriving Show
 
 eval :: [(Name, Int)] -> Expr -> Maybe Int
@@ -56,6 +57,8 @@ pCommand = do t <- many1 letter
                    space
                    e <- pExpr
                    return (Print e)
+                   ||| do string "quit"
+                          return Quit
 
 pExpr :: Parser Expr
 pExpr = do t <- pTerm
