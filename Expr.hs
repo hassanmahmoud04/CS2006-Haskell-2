@@ -27,7 +27,7 @@ data Command = Set Name Expr -- assign an expression to a variable name
   deriving Show
 
 data Value = IntVal Int | StrVal String
-	deriving (Show,Eq)
+  deriving (Show,Eq)
     
 integerop :: (Int -> Int -> Int) -> Value -> Value -> Maybe Value
 integerop f (IntVal x) (IntVal y) =  Just(IntVal(f x y))
@@ -88,9 +88,8 @@ pExpr = do t <- pTerm
 pFactor :: Parser Expr
 pFactor = do d <- nat
              return (Val (IntVal(d)))
-           ||| do v <- letter
-                  -- Updated to support parsing variables
-                  return (Var [v])
+           ||| do v <- many1 letter
+                  return (Var v)
                 ||| do char '('
                        e <- pExpr
                        char ')'
