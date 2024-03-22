@@ -1,6 +1,7 @@
 module Expr where
 
 import Parsing
+import Data.Maybe
 
 type Name = String
 
@@ -30,7 +31,7 @@ eval vars (Val x) = Just x -- for values, just give the value directly
 eval vars (Add x y) = do
       a <- eval vars x
       b <- eval vars y
-      return (Add a b)
+      return (a + b)
 eval vars (Subtract x y) = do
     a <- eval vars x
     b <- eval vars y
