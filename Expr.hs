@@ -27,7 +27,11 @@ data Command = Set Name Expr -- assign an expression to a variable name
   deriving Show
 
 data Value = IntVal Int | StrVal String
-  deriving (Show,Eq)
+  deriving (Eq)
+
+instance Show Value where
+    show (IntVal a) = show a
+    show (StrVal a) = show a
     
 integerop :: (Int -> Int -> Int) -> Value -> Value -> Maybe Value
 integerop f (IntVal x) (IntVal y) =  Just(IntVal(f x y))
