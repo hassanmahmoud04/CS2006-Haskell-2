@@ -11,7 +11,7 @@ data Expr = Add Expr Expr
           | Multiply Expr Expr
           | Divide Expr Expr
           | ToString Expr
-          | Val Int
+          | Val Value
           | Var Name
   deriving Show
 
@@ -21,12 +21,16 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | Quit
   deriving Show
 
-eval :: [(Name, Int)] -> Expr -> Maybe Int
+data Value = IntVal Int | StrVal [Char] 
+  deriving (Show, Eq)
+
+eval :: [(Name, Value)] -> Expr -> Maybe Value
+
 eval vars (Val x) = Just x -- for values, just give the value directly
 eval vars (Add x y) = do
-    a <- eval vars x
-    b <- eval vars y
-    return (a + b)
+      a <- eval vars x
+      b <- eval vars y
+      return (Add a b)
 eval vars (Subtract x y) = do
     a <- eval vars x
     b <- eval vars y
@@ -41,13 +45,13 @@ eval vars (Divide x y) = do
     if b == 0 then Nothing
               else return (a `div` b)
 eval vars (Var n) = lookup n vars
-eval vars (ToString x) = Nothing
+-- eval vars (ToString x) = show x
 
-digitToInt :: [Char] -> Int
-digitToInt [x] = fromEnum x - fromEnum '0'
-digitToInt (x:xs) = read (show (fromEnum x - fromEnum '0') ++ show (digitToInt xs)) :: Int
--- readDigit :: [Char] -> Int
--- readDigit 
+-- digitToInt :: Value -> Int
+-- digitToInt [x] = fromEnum x - fromEnum '0'
+-- digitToInt (x:xs) = read (show (fromEnum x - fromEnum '0') ++ show (digitToInt xs)) :: Int
+-- -- readDigit :: [Char] -> Int
+-- -- readDigit 
 
 pCommand :: Parser Command
 pCommand = do t <- many1 letter
@@ -74,10 +78,11 @@ pExpr = do t <- pTerm
                  ||| return t
 
 pFactor :: Parser Expr
-pFactor = do d <- many1 digit
-             return (Val (digitToInt d))
-           ||| do v <- many1 letter
-                  return (Var v)
+pFactor = do
+            t <- int
+            return (Val $ IntVal t) 
+           ||| do v <- many1 alphanum
+                  return (Val $ StrVal v)
                 ||| do char '('
                        e <- pExpr
                        char ')'
@@ -92,3 +97,5 @@ pTerm = do f <- pFactor
                    t <- pTerm
                    return (Divide f t) 
                  ||| return f
+
+-- toInt: read maybe or read either
