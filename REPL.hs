@@ -22,6 +22,11 @@ dropVar name = filter ((/= name) . fst)
 
 
 process :: LState -> Command -> IO ()
+process st (Set var Input) = do
+    userInput <- getLine  -- Directly read user input without prompting
+    let val = StrVal userInput  -- Treat input as a string value
+    let st' = LState $ updateVars var val (vars st)
+    repl st'
 process st (Set var expr) = case eval (vars st) expr of
     Just val -> do
         let st' = LState $ updateVars var val (vars st)
@@ -31,7 +36,7 @@ process st (Set var expr) = case eval (vars st) expr of
         repl st
 process st (Print expr) = case eval (vars st) expr of
     Just val -> do
-        print val  -- This already correctly handles Value due to the Show instance of Value
+        print val
         repl st
     Nothing -> do
         putStrLn "Error: Evaluation failed."
