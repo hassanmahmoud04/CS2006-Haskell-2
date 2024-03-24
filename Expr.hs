@@ -4,7 +4,6 @@ import Parsing
 import Text.Read (readMaybe)
 import Data.Char (digitToInt)
 import Data.Fixed
-import Data.HashMap
 
 
 
@@ -17,7 +16,6 @@ instance Show Value where
     show (IntVal a) = show a
     show (StrVal a) = show a
     show (FloatVal a) = show a
-
 
 -- Expanded `Expr` to include variables and string literals (for ToString handling)
 data Expr = Add Expr Expr
@@ -35,17 +33,12 @@ data Expr = Add Expr Expr
           | Stringconcat Expr Expr 
           | Input
           | Neg Expr
-
-
-instance Show Expr where
-    show (Neg a) = show a
-    show (Var a) = show a
+          deriving Show
 
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
              | Quit 
-             | Read Expr
 
   deriving Show
 
@@ -77,7 +70,7 @@ floatconv x y =
         intPart + decPart
 
 
-eval :: Map Name Value -> Expr -> Maybe Value
+eval :: [(Name, Value)] -> Expr -> Maybe Value
 eval _ (Val x) = Just x
 eval vars (Add x y) = do
     a <- eval vars x
@@ -112,7 +105,7 @@ eval vars (Stringconcat x y) = do
     a <- eval vars x
     b <- eval vars y
     stringop (++) a b
-eval vars (Var n) = Data.HashMap.lookup n vars
+eval vars (Var n) = lookup n vars
 eval vars (ToString x) = do
     a <- eval vars x
     case a of
@@ -182,10 +175,6 @@ pCommand = do t <- many1 letter
                    return (Print e)
                  ||| do string "quit"
                         return Quit
-                 ||| do string "read"
-                        space
-                        e <- pExpr
-                        return (Read e)
 
 
 pExpr :: Parser Expr
@@ -290,5 +279,3 @@ pTerm = do f <- pFactor
                    space
                    return (Power f t)
             ||| return f)
-
-

@@ -97,9 +97,6 @@ alphanum                      =  sat isAlphaNum
 char                          :: Char -> Parser Char
 char x                        =  sat (== x)
 
--- charLiteral                   :: Parser Char
--- charLiteral                   = sat (/= ' ')
-
 string                        :: String -> Parser String
 string []                     =  return []
 string (x:xs)                 =  do char x
