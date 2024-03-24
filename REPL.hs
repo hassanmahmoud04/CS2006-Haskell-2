@@ -1,6 +1,9 @@
 module REPL where
 
 import System.Console.Haskeline
+import Control.Monad
+import Control.Monad (foldM)
+import Control.Monad (replicateM_)
 import Expr
 import Parsing
 import Control.Monad.IO.Class (liftIO) -- For liftIO
@@ -23,30 +26,27 @@ updateVars name val env = (name, val) : filter ((/= name) . fst) env
 dropVar :: Name -> [(Name, Int)] -> [(Name, Int)]
 dropVar name = filter ((/= name) . fst)
 
-
-
-process :: LState -> Command -> InputT IO ()
-process st (Set var Input) = do
-    minput <- getInputLine ""  -- Prompt directly for user input
-    case minput of
-        Nothing -> outputStrLn "No input provided."
-        Just userInput -> do
-            let val = StrVal userInput  -- Treat input as a string value
-            let st' = LState $ updateVars var val (vars st)
-            repl st'
+process :: LState -> Command -> InputT IO LState
+process st (Repeat n cmds) =
+    foldM (\accSt _ -> foldM process accSt cmds) st [1..n]
 process st (Set var expr) = do
     case eval (vars st) expr of
         Just val -> do
-            let st' = LState $ updateVars var val (vars st)
-            repl st'
-        Nothing -> outputStrLn "Error: Evaluation failed."
+            let updatedVars = updateVars var val (vars st)
+            let st' = st { vars = updatedVars }
+            return st'
+        Nothing -> do
+            outputStrLn "Error: Evaluation failed."
+            return st
 process st (Print expr) = do
     case eval (vars st) expr of
         Just val -> do
             outputStrLn $ show val
-            repl st
-        Nothing -> outputStrLn "Error: Evaluation failed."
-process st Quit = outputStrLn "Exiting code..."
+            return st
+        Nothing -> do
+            outputStrLn "Error: Evaluation failed."
+            return st
+process st Quit = return st
 
 
 
@@ -63,11 +63,12 @@ repl st = do
     Nothing -> return () -- Exit on Ctrl+D
     Just input -> case parse pCommand input of
       [(cmd, "")] -> do
-        process st cmd
-        repl st -- This now correctly stays within InputT IO monad
+        newState <- process st cmd -- process returns updated state
+        repl newState -- Continue with the updated state
       _ -> do
         outputStrLn "Parse error"
-        repl st
+        repl st -- Continue with the current state on parse error
+
 
 
 

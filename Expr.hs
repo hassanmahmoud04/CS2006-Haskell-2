@@ -38,6 +38,7 @@ data Expr = Add Expr Expr
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
+             | Repeat Int [Command]  -- Add this line if it's not already present
              | Quit 
 
   deriving Show
@@ -161,20 +162,37 @@ eval vars (Neg x) = do
 
 
 
--- The parser section remains unchanged but should be expanded to handle `Var` and potentially strings.
+-- The parser section 
+
+pRepeat :: Parser Command
+pRepeat = do
+    string "repeat"
+    spaces
+    n <- nat
+    spaces
+    char '{'
+    spaces
+    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Ensure spaces around semicolons
+    spaces
+    char '}'
+    return $ Repeat n cmds
+
+
 pCommand :: Parser Command
-pCommand = do t <- many1 letter
-              space
-              char '='
-              space
-              e <- pExpr
-              return (Set t e)
-            ||| do string "print"
-                   space
-                   e <- pExpr
-                   return (Print e)
-                 ||| do string "quit"
-                        return Quit
+pCommand = pRepeat -- Attempt to parse Repeat first
+        ||| do t <- many1 letter
+               spaces
+               char '='
+               spaces
+               e <- pExpr
+               return (Set t e)
+        ||| do string "print"
+               spaces
+               e <- pExpr
+               return (Print e)
+        ||| do string "quit"
+               return Quit
+
 
 
 pExpr :: Parser Expr
