@@ -3,6 +3,7 @@ module Expr where
 import Parsing
 import Text.Read (readMaybe)
 import Data.Char (digitToInt)
+import Data.Fixed
 
 
 
@@ -52,6 +53,10 @@ stringop ::(String -> String -> String) -> Value -> Value -> Maybe Value
 stringop f (StrVal x) (StrVal y) =  Just(StrVal(f x y))
 stringop f _ _ = Nothing
 
+floatop :: (Float -> Float -> Float) -> Value -> Value -> Maybe Value
+floatop f (FloatVal x) (FloatVal y) = Just(FloatVal(f x y))
+floatop f _ _ = Nothing
+
 
 floatconv :: Int -> Int -> Float
 floatconv x y =
@@ -70,20 +75,32 @@ eval _ (Val x) = Just x
 eval vars (Add x y) = do
     a <- eval vars x
     b <- eval vars y
-    integerop (+) a b 
+    case (a, b) of 
+        (IntVal i, IntVal j) -> integerop (+) a b
+        (FloatVal i, FloatVal j) -> floatop (+) a b
+        _ -> Nothing
 eval vars (Subtract x y) = do  -- Assuming Subtract is part of Expr
     a <- eval vars x
     b <- eval vars y
-    integerop (-) a b 
+    case (a, b) of 
+        (IntVal i, IntVal j) -> integerop (-) a b
+        (FloatVal i, FloatVal j) -> floatop (-) a b
+        _ -> Nothing 
 eval vars (Multiply x y) = do  -- Assuming Multiply is part of Expr
     a <- eval vars x
     b <- eval vars y
-    integerop (*) a b 
+    case (a, b) of 
+        (IntVal i, IntVal j) -> integerop (*) a b 
+        (FloatVal i, FloatVal j) -> floatop (*) a b
+        _ -> Nothing 
 eval vars (Divide x y) = do  -- Assuming Divide is part of Expr
     a <- eval vars x
     b <- eval vars y
     if b == IntVal(0) then Nothing  -- Guard against division by zero
-        else integerop (div) a b 
+        else case (a, b) of 
+            (IntVal i, IntVal j) -> integerop (div) a b 
+            (FloatVal i, FloatVal j) -> floatop (/) a b
+            _ -> Nothing 
 eval vars (Stringconcat x y) = do 
     a <- eval vars x
     b <- eval vars y
@@ -109,18 +126,21 @@ eval vars (Abs x) = do
     a <- eval vars x
     case a of
         IntVal i -> Just (IntVal (abs i))
+        FloatVal i -> Just (FloatVal (abs i))
         _ -> Nothing  -- or handle other types as needed
 eval vars (Mod x y) = do
     a <- eval vars x
     b <- eval vars y
-    case (a, b) of
-        (IntVal i, IntVal j) -> Just (IntVal (mod i j))
+    case (a, b) of 
+        (IntVal i, IntVal j) -> integerop (mod) a b 
+        (FloatVal i, FloatVal j) -> floatop (mod') a b
         _ -> Nothing
 eval vars (Power x y) = do
     a <- eval vars x
     b <- eval vars y
-    case (a, b) of
-        (IntVal i, IntVal j) -> Just (IntVal (i ^ j))
+    case (a, b) of 
+        (IntVal i, IntVal j) -> integerop (^) a b 
+        (FloatVal i, FloatVal j) -> floatop (**) a b
         _ -> Nothing
 eval vars (ToFloat x) = do
     a <- eval vars x
