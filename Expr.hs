@@ -31,6 +31,7 @@ data Expr = Add Expr Expr
           | Power Expr Expr
           | Stringconcat Expr Expr 
           | Input
+          | Neg Expr
           deriving Show
 
 -- These are the REPL commands
@@ -131,7 +132,12 @@ eval vars (ToFloat x) = do
             return (FloatVal (fromIntegral i))
         FloatVal f -> 
             return (FloatVal f)
-
+eval vars (Neg x) = do
+    a <- eval vars x
+    case a of
+        IntVal i -> Just (IntVal (-i))
+        FloatVal i -> Just (FloatVal (-i))
+        _ -> Nothing
 
 
 
@@ -154,21 +160,21 @@ pCommand = do t <- many1 letter
 pExpr :: Parser Expr
 pExpr = do t <- pTerm
            (do 
-                spaces
+                space
                 char '+'
-                spaces
+                space
                 e <- pExpr
                 return (Add t e)
             ||| do 
-                spaces 
+                space 
                 char '-'
-                spaces 
+                space 
                 e <- pExpr
                 return (Subtract t e))
             ||| do 
-                spaces 
+                space 
                 string "++"
-                spaces
+                space
                 e <- pExpr
                 return (Stringconcat t e)
             ||| return t
@@ -185,22 +191,22 @@ pFactor = do
                  return (Val (IntVal(d)))
              ||| do 
                        string "input"
-                       spaces 
+                       space 
                        return (Input)
                     
              ||| do 
                        string "toString"
-                       spaces 
+                       space 
                        a <- pExpr
                        return (ToString a)
              ||| do 
                        string "toInt"
-                       spaces 
+                       space 
                        a <- pExpr
                        return (ToInt a)
              ||| do 
                        string "toFloat"
-                       spaces 
+                       space 
                        a <- pExpr
                        return (ToFloat a)
            ||| do v <- many1 letter
@@ -217,35 +223,40 @@ pFactor = do
                        return (Val (StrVal(str)))
            ||| do 
                    char '|'
-                   spaces
+                   space
                    e <- pTerm
-                   spaces 
+                   space 
                    char '|'
                    return (Abs e)
+           ||| do
+                   char '-'
+                   space
+                   e <- pTerm
+                   return (Neg e)
 
 
 pTerm :: Parser Expr
 pTerm = do f <- pFactor
-           (do spaces 
+           (do space 
                char '*'
-               spaces
+               space
                t <- pTerm
                return (Multiply f t)
-            ||| do spaces
+            ||| do space
                    char '/'
-                   spaces
+                   space
                    t <- pTerm
                    return (Divide f t)
-            ||| do spaces
+            ||| do space
                    char '%'
-                   spaces
+                   space
                    t <- pTerm
                    return (Mod f t)
-            ||| do spaces
+            ||| do space
                    char '^'
-                   spaces
+                   space
                    t <- pTerm
-                   spaces
+                   space
                    return (Power f t)
             ||| return f)
 
