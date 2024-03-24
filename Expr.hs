@@ -4,6 +4,7 @@ import Parsing
 import Text.Read (readMaybe)
 import Data.Char (digitToInt)
 import Data.Fixed
+import Data.HashMap
 
 
 
@@ -70,7 +71,7 @@ floatconv x y =
         intPart + decPart
 
 
-eval :: [(Name, Value)] -> Expr -> Maybe Value
+eval :: Map Name Value -> Expr -> Maybe Value
 eval _ (Val x) = Just x
 eval vars (Add x y) = do
     a <- eval vars x
@@ -105,7 +106,7 @@ eval vars (Stringconcat x y) = do
     a <- eval vars x
     b <- eval vars y
     stringop (++) a b
-eval vars (Var n) = lookup n vars
+eval vars (Var n) = Data.HashMap.lookup n vars
 eval vars (ToString x) = do
     a <- eval vars x
     case a of

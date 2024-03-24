@@ -1,0 +1,18 @@
+cabal-version: 2.4
+
+name:           HaskellPractical2
+version:        0.1.0.0
+description:    Haskell practical 2 scripting language. A basic scripting language with variable, conditional, operational support etc.
+license:        MIT
+author:         Sid Ramachandran, Hassan Mahmoud, Jake Brockwell
+maintainer:     sr270@st-andrews.ac.uk, hm253@st-andrews.ac.uk, jb457@st-andrews.ac.uk
+synopsis:       Demonstrates data types, type classes, and functions in Haskell.
+category:       Education
+tested-with:    GHC == 8.10.4
+
+executable adventure
+  main-is:             Main.hs
+  hs-source-dirs:      .
+  other-modules:       Expr, Parsing, REPL
+  build-depends:       base >=4.12 && <5, haskeline, hashmap
+  default-language:    Haskell2010

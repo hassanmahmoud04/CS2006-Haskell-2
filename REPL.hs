@@ -2,23 +2,24 @@ module REPL where
 
 import Expr
 import Parsing
+import Data.HashMap
 
-data LState = LState { vars :: [(Name, Value)] }
+data LState = LState { vars :: Map Name Value }
 
 initLState :: LState
-initLState = LState []
+initLState = LState empty
 
 -- Given a variable name and a value, return a new set of variables with
 -- that name and value added.
 -- If it already exists, remove the old value
-updateVars :: Name -> Value -> [(Name, Value)] -> [(Name, Value)]
-updateVars name val env = (name, val) : filter ((/= name) . fst) env
+updateVars :: Name -> Value -> Map Name Value -> Map Name Value
+updateVars name val env = insert name val (dropVar name env)
 
 
 
 -- Return a new set of variables with the given name removed
-dropVar :: Name -> [(Name, Int)] -> [(Name, Int)]
-dropVar name = filter ((/= name) . fst)
+dropVar :: Name -> Map Name Value -> Map Name Value
+dropVar name env = delete name env
 
 
 process :: LState -> Command -> IO ()
@@ -32,14 +33,14 @@ process st (Set var expr) = case eval (vars st) expr of
         let st' = LState $ updateVars var val (vars st)
         repl st'
     Nothing -> do
-        putStrLn "Error: Evaluation failed."
+        putStrLn "Error: Evaluation failed. Not a valid type for a variable."
         repl st
 process st (Print expr) = case eval (vars st) expr of
     Just val -> do
         print val
         repl st
     Nothing -> do
-        putStrLn "Error: Evaluation failed."
+        putStrLn "Error: Evaluation failed. Invalid expression to be printed, please check that operations are only performed on homogenous types."
         repl st
 process st Quit = putStrLn "Exiting code..."
 
