@@ -10,7 +10,7 @@ synopsis:       Demonstrates data types, type classes, and functions in Haskell.
 category:       Education
 tested-with:    GHC == 8.10.4
 
-executable adventure
+executable calc
   main-is:             Main.hs
   hs-source-dirs:      .
   other-modules:       Expr, Parsing, REPL

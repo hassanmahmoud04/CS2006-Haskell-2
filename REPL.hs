@@ -3,6 +3,7 @@ module REPL where
 import Expr
 import Parsing
 import Data.HashMap
+import System.IO
 
 data LState = LState { vars :: Map Name Value }
 
@@ -43,7 +44,15 @@ process st (Print expr) = case eval (vars st) expr of
         putStrLn "Error: Evaluation failed. Invalid expression to be printed, please check that operations are only performed on homogenous types."
         repl st
 process st Quit = putStrLn "Exiting code..."
-
+process st (Read path) = do
+    putStrLn "Reading from file:"
+    file <- readFile (Prelude.filter (/='"') ("./" ++ show path ++ ".txt"))
+    let allLines = lines file
+    case Prelude.map (parse pCommand) (allLines) of
+        [[(cmd, "")]] ->  
+                process st cmd
+        _ -> do putStrLn "Parse error"
+                repl st
 
 
 -- Read, Eval, Print Loop
@@ -52,7 +61,7 @@ process st Quit = putStrLn "Exiting code..."
 -- 'process' will call 'repl' when done, so the system loops.
 
 repl :: LState -> IO ()
-repl st = do putStr ("> ")
+repl st = do putStr "> "
              inp <- getLine
              case parse pCommand inp of
                   [(cmd, "")] -> -- Must parse entire input

@@ -18,6 +18,7 @@ instance Show Value where
     show (StrVal a) = show a
     show (FloatVal a) = show a
 
+
 -- Expanded `Expr` to include variables and string literals (for ToString handling)
 data Expr = Add Expr Expr
           | ToString Expr
@@ -34,12 +35,17 @@ data Expr = Add Expr Expr
           | Stringconcat Expr Expr 
           | Input
           | Neg Expr
-          deriving Show
+
+
+instance Show Expr where
+    show (Neg a) = show a
+    show (Var a) = show a
 
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
              | Quit 
+             | Read Expr
 
   deriving Show
 
@@ -176,6 +182,10 @@ pCommand = do t <- many1 letter
                    return (Print e)
                  ||| do string "quit"
                         return Quit
+                 ||| do string "read"
+                        space
+                        e <- pExpr
+                        return (Read e)
 
 
 pExpr :: Parser Expr
