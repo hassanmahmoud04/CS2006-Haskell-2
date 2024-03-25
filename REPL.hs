@@ -45,13 +45,16 @@ process st (Print expr) = case eval (vars st) expr of
         repl st
 process st Quit = putStrLn "Exiting code..."
 process st (Read path) = do
-    putStrLn "Reading from file:"
-    file <- readFile (Prelude.filter (/='"') ("./" ++ show path ++ ".txt"))
+    let concatPath = Prelude.filter (/='"') ("./" ++ show path ++ ".txt")
+    putStrLn ("Reading from file:" ++ (show concatPath))
+    file <- readFile (concatPath)
     let allLines = lines file
+    mapM_ (print) (allLines)
+    mapM_ (print) (Prelude.map (parse pCommand) (allLines))
     case Prelude.map (parse pCommand) (allLines) of
         [[(cmd, "")]] ->  
                 process st cmd
-        _ -> do putStrLn "Parse error"
+        _ -> do putStrLn "Parse error in one of lines."
                 repl st
 process st (If c t e) = case eval (vars st) c of
     Just (IntVal 1) -> do

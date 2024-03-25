@@ -36,6 +36,7 @@ data Expr = Add Expr Expr
           | Input
           | Neg Expr
           | Equals Expr Expr
+        --deriving Show
         --   | If Expr Command Command
         --   | Then Expr
         --   | Else Expr
@@ -43,6 +44,11 @@ data Expr = Add Expr Expr
 instance Show Expr where
     show (Neg a) = show a
     show (Var a) = show a
+    show (Val a) = show a
+    show (Abs a) = show a 
+    show (Power a b) = (show a) ++ "^" ++ (show b)
+    show (Multiply a b) = (show a) ++ "*" ++ (show b)
+    show (Stringconcat a b) = (show a) ++ "++" ++ (show b)
 
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
@@ -50,7 +56,6 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | Quit 
              | Read Expr
              | If Expr Command Command
-
   deriving Show
 
 
