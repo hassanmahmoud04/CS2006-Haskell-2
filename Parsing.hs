@@ -30,7 +30,6 @@ instance Applicative Parser where
                 a' <- a
                 return (f' a')
 
-
 instance Monad Parser where
    return v                   =  P (\inp -> [(v,inp)])
    p >>= f                    =  P (\inp -> case parse p inp of

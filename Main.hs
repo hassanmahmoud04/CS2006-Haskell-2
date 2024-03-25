@@ -1,9 +1,10 @@
 module Main where
 
-import REPL (initLState, repl)
-import System.Console.Haskeline
-import Control.Monad.Trans.State (execStateT)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.State (runStateT)
+import System.Console.Haskeline (runInputT, defaultSettings)
+import REPL (repl, initLState)
+import Control.Monad
 
 main :: IO ()
-main = runInputT defaultSettings $ liftIO (execStateT repl initLState >> return ())
+-- main = void $ runInputT defaultSettings $ runStateT repl initLState
+main = void $ runStateT (runInputT defaultSettings repl) initLState
