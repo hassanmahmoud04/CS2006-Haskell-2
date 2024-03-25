@@ -164,34 +164,54 @@ eval vars (Neg x) = do
 
 -- The parser section 
 
+
+sepBy1 :: Parser a -> Parser sep -> Parser [a]
+sepBy1 p sep = do
+  first <- p
+  rest <- many (sep >> p)
+  return (first:rest)
+
+
 pRepeat :: Parser Command
 pRepeat = do
     string "repeat"
-    spaces
-    n <- nat
-    spaces
+    spaces -- Consume any spaces after the keyword.
+    n <- nat -- Parse the number of repetitions.
+    spaces -- Optional: consume any spaces before the '{'.
     char '{'
-    spaces
-    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Ensure spaces around semicolons
-    spaces
+    spaces -- Optional: consume any spaces before the first command.
+    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Parse the commands inside the block, separated by semicolons and surrounded by spaces.
+    spaces -- Optional: consume any spaces after the last command and before '}'.
     char '}'
     return $ Repeat n cmds
 
+pPrint :: Parser Command
+pPrint = do
+    string "print"
+    spaces
+    e <- pExpr
+    return (Print e)
+    
+pSet :: Parser Command
+pSet = do 
+    t <- many1 letter
+    spaces
+    char '='
+    spaces
+    e <- pExpr
+    return (Set t e)
+
+pQuit :: Parser Command
+pQuit = do
+	string "quit"
+	return Quit
 
 pCommand :: Parser Command
-pCommand = pRepeat -- Attempt to parse Repeat first
-        ||| do t <- many1 letter
-               spaces
-               char '='
-               spaces
-               e <- pExpr
-               return (Set t e)
-        ||| do string "print"
-               spaces
-               e <- pExpr
-               return (Print e)
-        ||| do string "quit"
-               return Quit
+pCommand = spaces >> (
+  	    pRepeat
+  	||| pSet
+    ||| pPrint
+    ||| pQuit)
 
 
 

@@ -8,6 +8,9 @@ import Expr
 import Parsing
 import Control.Monad.IO.Class (liftIO) -- For liftIO
 import Data.List (isPrefixOf)
+import Control.Monad.Trans.State
+import Control.Monad.IO.Class (liftIO)
+
 
 data LState = LState { vars :: [(Name, Value)] }
 
@@ -26,27 +29,21 @@ updateVars name val env = (name, val) : filter ((/= name) . fst) env
 dropVar :: Name -> [(Name, Int)] -> [(Name, Int)]
 dropVar name = filter ((/= name) . fst)
 
-process :: LState -> Command -> InputT IO LState
-process st (Repeat n cmds) =
-    foldM (\accSt _ -> foldM process accSt cmds) st [1..n]
-process st (Set var expr) = do
+process :: Command -> StateT LState IO ()
+process (Repeat n cmds) = replicateM_ n $ mapM_ process cmds
+process (Set var expr) = do
+    st <- get -- Retrieve the current state
     case eval (vars st) expr of
         Just val -> do
             let updatedVars = updateVars var val (vars st)
-            let st' = st { vars = updatedVars }
-            return st'
-        Nothing -> do
-            outputStrLn "Error: Evaluation failed."
-            return st
-process st (Print expr) = do
+            put st { vars = updatedVars } -- Update the state with the new variables
+        Nothing -> liftIO $ putStrLn "Error: Evaluation failed."
+process (Print expr) = do
+    st <- get -- Retrieve the current state
     case eval (vars st) expr of
-        Just val -> do
-            outputStrLn $ show val
-            return st
-        Nothing -> do
-            outputStrLn "Error: Evaluation failed."
-            return st
-process st Quit = return st
+        Just val -> liftIO $ putStrLn $ show val -- Print the evaluated expression
+        Nothing -> liftIO $ putStrLn "Error: Evaluation failed."
+process Quit = return () -- Quit command does not change the state
 
 
 
@@ -56,18 +53,23 @@ process st Quit = return st
 -- 'process' to process the command.
 -- 'process' will call 'repl' when done, so the system loops.
 
-repl :: LState -> InputT IO ()
-repl st = do
-  minput <- getInputLine "> "
+repl :: StateT LState IO ()
+repl = do
+  minput <- liftIO $ runInputT defaultSettings $ getInputLine "> "
   case minput of
-    Nothing -> return () -- Exit on Ctrl+D
-    Just input -> case parse pCommand input of
-      [(cmd, "")] -> do
-        newState <- process st cmd -- process returns updated state
-        repl newState -- Continue with the updated state
-      _ -> do
-        outputStrLn "Parse error"
-        repl st -- Continue with the current state on parse error
+    Nothing -> return ()  -- Exit on Ctrl+D
+    Just input -> do
+      -- Parse the command from the input
+      case parse pCommand input of
+        [(cmd, "")] -> do
+          -- Process the command, potentially updating the state
+          process cmd
+          -- Recursively call repl to handle the next command
+          repl
+        _ -> do
+          -- Handle parse errors
+          liftIO $ putStrLn "Parse error"
+          repl
 
 
 

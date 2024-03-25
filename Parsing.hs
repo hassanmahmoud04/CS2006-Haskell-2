@@ -29,12 +29,6 @@ instance Applicative Parser where
    f <*> a = do f' <- f
                 a' <- a
                 return (f' a')
-                
-sepBy1 :: Parser a -> Parser sep -> Parser [a]
-sepBy1 p sep = do
-  first <- p
-  rest <- many (sep >> p)
-  return (first:rest)
 
 
 instance Monad Parser where
