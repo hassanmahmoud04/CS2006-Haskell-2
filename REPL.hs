@@ -53,6 +53,14 @@ process st (Read path) = do
                 process st cmd
         _ -> do putStrLn "Parse error"
                 repl st
+process st (If c t e) = case eval (vars st) c of
+    Just (IntVal 1) -> do
+        process st t
+    Just (IntVal 0) -> do 
+        process st e
+    Nothing -> do
+        putStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
+        repl st
 
 
 -- Read, Eval, Print Loop

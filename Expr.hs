@@ -35,7 +35,10 @@ data Expr = Add Expr Expr
           | Stringconcat Expr Expr 
           | Input
           | Neg Expr
-
+          | Equals Expr Expr
+        --   | If Expr Command Command
+        --   | Then Expr
+        --   | Else Expr
 
 instance Show Expr where
     show (Neg a) = show a
@@ -46,6 +49,7 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
              | Quit 
              | Read Expr
+             | If Expr Command Command
 
   deriving Show
 
@@ -165,8 +169,19 @@ eval vars (Neg x) = do
         IntVal i -> Just (IntVal (-i))
         FloatVal i -> Just (FloatVal (-i))
         _ -> Nothing
-
-
+eval vars (Equals x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    case (a, b) of 
+        (IntVal i, IntVal j)
+            | i == j ->     Just (IntVal 1)
+            | otherwise ->  Just (IntVal 0)
+        (FloatVal i, FloatVal j)
+            | i == j ->     Just (IntVal 1)
+            | otherwise ->  Just (IntVal 0)
+        (StrVal i, StrVal j)
+            | i == j ->     Just (IntVal 1)
+            | otherwise ->  Just (IntVal 0)
 
 -- The parser section remains unchanged but should be expanded to handle `Var` and potentially strings.
 pCommand :: Parser Command
@@ -180,12 +195,24 @@ pCommand = do t <- many1 letter
                    space
                    e <- pExpr
                    return (Print e)
-                 ||| do string "quit"
-                        return Quit
-                 ||| do string "read"
-                        space
-                        e <- pExpr
-                        return (Read e)
+            ||| do string "quit"
+                   return Quit
+            ||| do string "read"
+                   space
+                   e <- pExpr
+                   return (Read e)
+            ||| do string "if"
+                   space
+                   c <- pExpr
+                   space
+                   string "then"
+                   space
+                   t <- pCommand
+                   space
+                   string "else"
+                   space
+                   e <- pCommand
+                   return (If c t e)
 
 
 pExpr :: Parser Expr
@@ -208,7 +235,13 @@ pExpr = do t <- pTerm
                 space
                 e <- pExpr
                 return (Stringconcat t e)
-            ||| return t
+            ||| do 
+                space
+                string "=="
+                space
+                e <- pExpr
+                return (Equals t e) 
+            ||| return t    
 
 
 pFactor :: Parser Expr
