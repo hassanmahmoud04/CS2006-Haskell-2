@@ -56,6 +56,7 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | Quit 
              | Read Expr
              | If Expr Command Command
+             | Repeat Int [Command]
   deriving Show
 
 
@@ -188,36 +189,79 @@ eval vars (Equals x y) = do
             | i == j ->     Just (IntVal 1)
             | otherwise ->  Just (IntVal 0)
 
--- The parser section remains unchanged but should be expanded to handle `Var` and potentially strings.
+sepBy1 :: Parser a -> Parser sep -> Parser [a]
+sepBy1 p sep = do
+  first <- p
+  rest <- many (sep >> p)
+  return (first:rest)
+
+
+pRepeat :: Parser Command
+pRepeat = do
+    string "repeat"
+    spaces -- Consume any spaces after the keyword.
+    n <- nat -- Parse the number of repetitions.
+    spaces -- Optional: consume any spaces before the '{'.
+    char '{'
+    spaces -- Optional: consume any spaces before the first command.
+    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Parse the commands inside the block, separated by semicolons and surrounded by spaces.
+    spaces -- Optional: consume any spaces after the last command and before '}'.
+    char '}'
+    return $ Repeat n cmds
+
+pPrint :: Parser Command
+pPrint = do
+    string "print"
+    spaces
+    e <- pExpr
+    return (Print e)
+
+pSet :: Parser Command
+pSet = do 
+    t <- many1 letter
+    spaces
+    char '='
+    spaces
+    e <- pExpr
+    return (Set t e)
+
+pQuit :: Parser Command
+pQuit = do
+	string "quit"
+	return Quit
+
+pRead :: Parser Command
+pRead = do
+    string "read"
+    space 
+    e <- pExpr
+    return (Read e)
+
+pIf :: Parser Command
+pIf = do
+    string "if"
+    space
+    c <- pExpr
+    space
+    string "then"
+    space
+    t <- pCommand
+    space
+    string "else"
+    space
+    e <- pCommand
+    return (If c t e)
+
 pCommand :: Parser Command
-pCommand = do t <- many1 letter
-              space
-              char '='
-              space
-              e <- pExpr
-              return (Set t e)
-            ||| do string "print"
-                   space
-                   e <- pExpr
-                   return (Print e)
-            ||| do string "quit"
-                   return Quit
-            ||| do string "read"
-                   space
-                   e <- pExpr
-                   return (Read e)
-            ||| do string "if"
-                   space
-                   c <- pExpr
-                   space
-                   string "then"
-                   space
-                   t <- pCommand
-                   space
-                   string "else"
-                   space
-                   e <- pCommand
-                   return (If c t e)
+pCommand = spaces >> (
+  	    pRepeat
+  	||| pSet
+    ||| pPrint
+    ||| pRead
+    ||| pIf
+    ||| pQuit)
+
+
 
 
 pExpr :: Parser Expr
