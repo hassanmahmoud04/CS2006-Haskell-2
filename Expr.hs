@@ -4,7 +4,6 @@ import Parsing
 import Text.Read (readMaybe)
 import Data.Char (digitToInt)
 import Data.Fixed
-import Data.HashMap
 
 
 
@@ -17,7 +16,6 @@ instance Show Value where
     show (IntVal a) = show a
     show (StrVal a) = show a
     show (FloatVal a) = show a
-
 
 -- Expanded `Expr` to include variables and string literals (for ToString handling)
 data Expr = Add Expr Expr
@@ -35,27 +33,14 @@ data Expr = Add Expr Expr
           | Stringconcat Expr Expr 
           | Input
           | Neg Expr
-          | Equals Expr Expr
-        --deriving Show
-        --   | If Expr Command Command
-        --   | Then Expr
-        --   | Else Expr
-
-instance Show Expr where
-    show (Neg a) = show a
-    show (Var a) = show a
-    show (Val a) = show a
-    show (Abs a) = show a 
-    show (Power a b) = (show a) ++ "^" ++ (show b)
-    show (Multiply a b) = (show a) ++ "*" ++ (show b)
-    show (Stringconcat a b) = (show a) ++ "++" ++ (show b)
+          deriving Show
 
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
-             | Read Expr
-             | If Expr Command Command
-             | Repeat Int [Command]
+             | Repeat Int [Command]  -- Add this line if it's not already present
+             | Quit 
+
   deriving Show
 
 
@@ -86,7 +71,7 @@ floatconv x y =
         intPart + decPart
 
 
-eval :: Map Name Value -> Expr -> Maybe Value
+eval :: [(Name, Value)] -> Expr -> Maybe Value
 eval _ (Val x) = Just x
 eval vars (Add x y) = do
     a <- eval vars x
@@ -121,7 +106,7 @@ eval vars (Stringconcat x y) = do
     a <- eval vars x
     b <- eval vars y
     stringop (++) a b
-eval vars (Var n) = Data.HashMap.lookup n vars
+eval vars (Var n) = lookup n vars
 eval vars (ToString x) = do
     a <- eval vars x
     case a of
@@ -199,62 +184,43 @@ sepBy1 p sep = do
 pRepeat :: Parser Command
 pRepeat = do
     string "repeat"
-    space -- Consume any space after the keyword.
+    spaces -- Consume any spaces after the keyword.
     n <- nat -- Parse the number of repetitions.
-    space -- Optional: consume any space before the '{'.
+    spaces -- Optional: consume any spaces before the '{'.
     char '{'
-    space -- Optional: consume any space before the first command.
-    cmds <- sepBy1 pCommand (space >> char ';' >> space) -- Parse the commands inside the block, separated by semicolons and surrounded by space.
-    space -- Optional: consume any space after the last command and before '}'.
+    spaces -- Optional: consume any spaces before the first command.
+    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Parse the commands inside the block, separated by semicolons and surrounded by spaces.
+    spaces -- Optional: consume any spaces after the last command and before '}'.
     char '}'
     return $ Repeat n cmds
 
 pPrint :: Parser Command
 pPrint = do
     string "print"
-    space
+    spaces
     e <- pExpr
     return (Print e)
 
 pSet :: Parser Command
 pSet = do 
     t <- many1 letter
-    space
+    spaces
     char '='
-    space
+    spaces
     e <- pExpr
     return (Set t e)
 
-pRead :: Parser Command
-pRead = do
-    string "read"
-    space 
-    e <- pExpr
-    return (Read e)
-
-pIf :: Parser Command
-pIf = do
-    string "if"
-    space
-    c <- pExpr
-    space
-    string "then"
-    space
-    t <- pCommand
-    space
-    string "else"
-    space
-    e <- pCommand
-    return (If c t e)
+pQuit :: Parser Command
+pQuit = do
+	string "quit"
+	return Quit
 
 pCommand :: Parser Command
-pCommand = space >> (
-    pRepeat
-    ||| pSet
+pCommand = spaces >> (
+  	    pRepeat
+  	||| pSet
     ||| pPrint
-    ||| pRead
-    ||| pIf)
-
+    ||| pQuit)
 
 
 
@@ -278,13 +244,7 @@ pExpr = do t <- pTerm
                 space
                 e <- pExpr
                 return (Stringconcat t e)
-            ||| do 
-                space
-                string "=="
-                space
-                e <- pExpr
-                return (Equals t e) 
-            ||| return t    
+            ||| return t
 
 
 pFactor :: Parser Expr
@@ -366,5 +326,3 @@ pTerm = do f <- pFactor
                    space
                    return (Power f t)
             ||| return f)
-
-
