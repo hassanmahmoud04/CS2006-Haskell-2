@@ -3,7 +3,18 @@ module REPL where
 import Expr
 import Parsing
 import Data.HashMap
+import Data.Tuple
 import System.IO
+
+import System.Console.Haskeline
+import Control.Monad
+import Control.Monad (foldM)
+import Control.Monad(replicateM_)
+import Control.Monad.IO.Class (liftIO) -- For liftIO
+import Data.List (isPrefixOf)
+import Control.Monad.Trans.State
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class
 
 data LState = LState { vars :: Map Name Value }
 
@@ -23,56 +34,94 @@ dropVar :: Name -> Map Name Value -> Map Name Value
 dropVar name env = delete name env
 
 
-process :: LState -> Command -> IO ()
-process st (Set var Input) = do
-    userInput <- getLine  -- Directly read user input without prompting
-    let val = StrVal userInput  -- Treat input as a string value
-    let st' = LState $ updateVars var val (vars st)
-    repl st'
-process st (Set var expr) = case eval (vars st) expr of
-    Just val -> do
-        let st' = LState $ updateVars var val (vars st)
-        repl st'
-    Nothing -> do
-        putStrLn "Error: Evaluation failed. Not a valid type for a variable."
-        repl st
-process st (Print expr) = case eval (vars st) expr of
-    Just val -> do
-        print val
-        repl st
-    Nothing -> do
-        putStrLn "Error: Evaluation failed. Invalid expression to be printed, please check that operations are only performed on homogenous types."
-        repl st
-process st Quit = putStrLn "Exiting code..."
-process st (Read path) = do
-    putStrLn "Reading from file:"
-    file <- readFile (Prelude.filter (/='"') ("./" ++ show path ++ ".txt"))
+process :: Command -> InputT (StateT LState IO) ()
+process (Repeat n cmds) = replicateM_ n (mapM_ process cmds)
+process (Set var Input) = do
+    st <- lift get
+    minput <- getInputLine ""  -- Directly read user input without prompting
+    case minput of
+        Nothing -> return ()
+        Just userInput -> do
+            let val = StrVal(userInput)
+            let updatedVars = updateVars var val (vars st)
+            lift $ put st{ vars = updatedVars }
+process (Set var expr) = do
+    st <- lift get -- Lift the get operation from StateT into InputT (StateT IO LState)
+    case eval (vars st) expr of
+        Just val -> do
+            let updatedVars = updateVars var val (vars st)
+            lift $ put st{ vars = updatedVars }  -- Lift the put operation to update state
+        Nothing -> outputStrLn "Error: Evaluation failed."
+process (Print expr) = do
+    st <- lift get  -- Access the current state
+    case eval (vars st) expr of
+        Just val -> outputStrLn $ show val
+        Nothing -> outputStrLn "Error: Evaluation failed."
+process (Read path) = do
+    st <- lift get
+    let concatPath = Prelude.filter (/='"') ("./" ++ show path ++ ".txt")
+    outputStrLn ("Reading from file:" ++ (show concatPath))
+    file <- lift ( lift(readFile (concatPath)))
     let allLines = lines file
-    case Prelude.map (parse pCommand) (allLines) of
-        [[(cmd, "")]] ->  
-                process st cmd
-        _ -> do putStrLn "Parse error"
-                repl st
-process st (If c t e) = case eval (vars st) c of
-    Just (IntVal 1) -> do
-        process st t
-    Just (IntVal 0) -> do 
-        process st e
-    Nothing -> do
-        putStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
-        repl st
+    let parsedLines = Prelude.map (parse pCommand) (allLines)
+    let cmds = Prelude.map (Data.Tuple.fst) (Prelude.map head parsedLines)
+    let sts = (Prelude.map (readRepl st) (cmds))
+    (mapM_ process cmds)
+process (If c t e) = do
+    st <- lift get 
+    case eval (vars st) c of
+        Just (IntVal 1) -> do
+            process t
+        Just (IntVal 0) -> do 
+            process e
+        Nothing -> do
+            outputStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
 
+
+readRepl :: LState -> Command -> LState
+readRepl st (Set var expr) = case eval (vars st) expr of
+    Just val -> LState $ updateVars var val (vars st)
+    Nothing -> st
+readRepl st (Print expr) = case eval (vars st) expr of
+    Just val -> st
+    Nothing -> st
+
+-- walkthrough :: [LState] -> [Command] -> IO ()
+-- walkthrough [] []    = pure ()
+-- walkthrough (x:xs) (y:ys) = do process x y
 
 -- Read, Eval, Print Loop
 -- This reads and parses the input using the pCommand parser, and calls
 -- 'process' to process the command.
 -- 'process' will call 'repl' when done, so the system loops.
 
-repl :: LState -> IO ()
-repl st = do putStr "> "
-             inp <- getLine
-             case parse pCommand inp of
-                  [(cmd, "")] -> -- Must parse entire input
-                          process st cmd
-                  _ -> do putStrLn "Parse error"
-                          repl st
+repl :: InputT (StateT LState IO) ()
+repl = do
+  minput <- getInputLine "> "
+  case minput of
+    Nothing -> return ()  -- Exit on Ctrl+D or equivalent
+    Just "quit" -> return ()
+    Just input -> case parse pCommand input of
+      [(cmd, "")] -> do
+        -- 'process' now modifies the state directly
+        process cmd
+        repl  -- Repeat the loop with the potentially updated state
+      _ -> do
+        outputStrLn "Parse error"
+        repl  -- Repeat the loop with the current state on parse error
+
+completionFunction :: LState -> CompletionFunc IO
+completionFunction st = completeWord Nothing " \t" $ return . findMatches (vars st)
+    where
+        findMatches varsList prefix = 
+            Prelude.map simpleCompletion 
+            $ Prelude.filter (prefix `isPrefixOf`)
+            $ Data.HashMap.keys varsList
+
+-- keysList :: Map Name Value -> [Name]
+-- keysList map = Data.HashMap.keys map 
+
+-- type StateData = [String]
+-- replSettings :: Settings (StateT StateData IO) 
+-- replSettings = Settings
+--     { complete = completionFunction }

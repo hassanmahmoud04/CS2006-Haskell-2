@@ -14,5 +14,5 @@ executable calc
   main-is:             Main.hs
   hs-source-dirs:      .
   other-modules:       Expr, Parsing, REPL
-  build-depends:       base >=4.12 && <5, haskeline, hashmap, QuickCheck
+  build-depends:       base >=4.12 && <5, haskeline, hashmap, QuickCheck, tuple
   default-language:    Haskell2010
