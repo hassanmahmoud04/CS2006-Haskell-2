@@ -5,6 +5,7 @@ import Parsing
 import Data.HashMap
 import Data.Tuple
 import System.IO
+import Control.Monad(replicateM_)
 
 data LState = LState { vars :: Map Name Value }
 
@@ -55,8 +56,7 @@ process st (Read path) = do
     let parsedLines = Prelude.map (parse pCommand) (allLines)
     let cmds = Prelude.map (Data.Tuple.fst) (Prelude.map head parsedLines)
     let sts = (Prelude.map (readRepl st) (cmds))
-    walkthrough sts cmds
-    repl (last sts)
+    (mapM_ (process (head sts)) cmds)
 process st (If c t e) = case eval (vars st) c of
     Just (IntVal 1) -> do
         process st t
@@ -75,9 +75,9 @@ readRepl st (Print expr) = case eval (vars st) expr of
     Just val -> st
     Nothing -> st
 
-walkthrough :: [LState] -> [Command] -> IO ()
-walkthrough [] []    = pure ()
-walkthrough (x:xs) (y:ys) = do process x y
+-- walkthrough :: [LState] -> [Command] -> IO ()
+-- walkthrough [] []    = pure ()
+-- walkthrough (x:xs) (y:ys) = do process x y
 
 -- Read, Eval, Print Loop
 -- This reads and parses the input using the pCommand parser, and calls
