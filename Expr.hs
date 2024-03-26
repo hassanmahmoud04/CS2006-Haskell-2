@@ -53,7 +53,6 @@ instance Show Expr where
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
-             | Quit 
              | Read Expr
              | If Expr Command Command
              | Repeat Int [Command]
@@ -199,36 +198,31 @@ sepBy1 p sep = do
 pRepeat :: Parser Command
 pRepeat = do
     string "repeat"
-    spaces -- Consume any spaces after the keyword.
+    space -- Consume any space after the keyword.
     n <- nat -- Parse the number of repetitions.
-    spaces -- Optional: consume any spaces before the '{'.
+    space -- Optional: consume any space before the '{'.
     char '{'
-    spaces -- Optional: consume any spaces before the first command.
-    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Parse the commands inside the block, separated by semicolons and surrounded by spaces.
-    spaces -- Optional: consume any spaces after the last command and before '}'.
+    space -- Optional: consume any space before the first command.
+    cmds <- sepBy1 pCommand (space >> char ';' >> space) -- Parse the commands inside the block, separated by semicolons and surrounded by space.
+    space -- Optional: consume any space after the last command and before '}'.
     char '}'
     return $ Repeat n cmds
 
 pPrint :: Parser Command
 pPrint = do
     string "print"
-    spaces
+    space
     e <- pExpr
     return (Print e)
 
 pSet :: Parser Command
 pSet = do 
     t <- many1 letter
-    spaces
+    space
     char '='
-    spaces
+    space
     e <- pExpr
     return (Set t e)
-
-pQuit :: Parser Command
-pQuit = do
-	string "quit"
-	return Quit
 
 pRead :: Parser Command
 pRead = do
@@ -253,13 +247,12 @@ pIf = do
     return (If c t e)
 
 pCommand :: Parser Command
-pCommand = spaces >> (
-  	    pRepeat
-  	||| pSet
+pCommand = space >> (
+    pRepeat
+    ||| pSet
     ||| pPrint
     ||| pRead
-    ||| pIf
-    ||| pQuit)
+    ||| pIf)
 
 
 

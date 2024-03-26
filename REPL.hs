@@ -36,6 +36,15 @@ dropVar name env = delete name env
 
 process :: Command -> InputT (StateT LState IO) ()
 process (Repeat n cmds) = replicateM_ n (mapM_ process cmds)
+process (Set var Input) = do
+    st <- lift get
+    minput <- getInputLine ""  -- Directly read user input without prompting
+    case minput of
+        Nothing -> return ()
+        Just userInput -> do
+            let val = StrVal(userInput)
+            let updatedVars = updateVars var val (vars st)
+            lift $ put st{ vars = updatedVars }
 process (Set var expr) = do
     st <- lift get -- Lift the get operation from StateT into InputT (StateT IO LState)
     case eval (vars st) expr of
@@ -48,16 +57,6 @@ process (Print expr) = do
     case eval (vars st) expr of
         Just val -> outputStrLn $ show val
         Nothing -> outputStrLn "Error: Evaluation failed."
-process Quit = return ()
-process (Set var Input) = do
-    st <- lift get
-    minput <- getInputLine ""  -- Directly read user input without prompting
-    case minput of
-        Nothing -> return ()
-        Just userInput -> do
-            let val = StrVal(userInput)
-            let updatedVars = updateVars var val (vars st)
-            lift $ put st{ vars = updatedVars }
 process (Read path) = do
     st <- lift get
     let concatPath = Prelude.filter (/='"') ("./" ++ show path ++ ".txt")
@@ -101,6 +100,7 @@ repl = do
   minput <- getInputLine "> "
   case minput of
     Nothing -> return ()  -- Exit on Ctrl+D or equivalent
+    Just "quit" -> return ()
     Just input -> case parse pCommand input of
       [(cmd, "")] -> do
         -- 'process' now modifies the state directly
@@ -111,12 +111,17 @@ repl = do
         repl  -- Repeat the loop with the current state on parse error
 
 completionFunction :: LState -> CompletionFunc IO
-completionFunction st = completeWord Nothing " \t" $ return . findMatches ((keysList vars) st)
-  where
-    findMatches varsList prefix = 
-      Prelude.map simpleCompletion 
-      $ Prelude.filter (prefix `isPrefixOf`) 
-      $ Prelude.map fst varsList
+completionFunction st = completeWord Nothing " \t" $ return . findMatches (vars st)
+    where
+        findMatches varsList prefix = 
+            Prelude.map simpleCompletion 
+            $ Prelude.filter (prefix `isPrefixOf`)
+            $ Data.HashMap.keys varsList
 
-keysList :: Map Name Value -> [Name]
-keysList map = Data.HashMap.keys map 
+-- keysList :: Map Name Value -> [Name]
+-- keysList map = Data.HashMap.keys map 
+
+-- type StateData = [String]
+-- replSettings :: Settings (StateT StateData IO) 
+-- replSettings = Settings
+--     { complete = completionFunction }
