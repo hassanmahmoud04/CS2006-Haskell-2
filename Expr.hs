@@ -182,6 +182,7 @@ eval vars (Equals x y) = do
         (StrVal i, StrVal j)
             | i == j ->     Just (IntVal 1)
             | otherwise ->  Just (IntVal 0)
+        (_, _) -> Nothing
 
 -- The parser section remains unchanged but should be expanded to handle `Var` and potentially strings.
 pCommand :: Parser Command
