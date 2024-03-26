@@ -1,9 +1,8 @@
-import Control.Monad.Trans.State (runStateT)
-import System.Console.Haskeline (runInputT, defaultSettings)
-import REPL (repl, initLState)
-import Control.Monad
+module Main where
+
+import REPL (initLState, repl)
+import System.Console.Haskeline
+import Control.Monad.Trans.State (evalStateT)
 
 main :: IO ()
-main = void $ runStateT (runInputT defaultSettings repl) initLState
-
-
+main = runInputT defaultSettings $ evalStateT repl initLState
