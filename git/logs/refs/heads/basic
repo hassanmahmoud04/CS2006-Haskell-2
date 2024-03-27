@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 78df840213c872c7c24130d59e4cf52c743f261f Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710949340 +0000	branch: Created from refs/remotes/origin/basic
+78df840213c872c7c24130d59e4cf52c743f261f a220b11d195eec6d2d8272a258377af4e1f89ba4 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710952164 +0000	commit: upload new files for reimplementation of basic requirements
+a220b11d195eec6d2d8272a258377af4e1f89ba4 8147934c49f0d60c5dce6e65a57af9140cf40f01 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711034763 +0000	pull: Fast-forward
+8147934c49f0d60c5dce6e65a57af9140cf40f01 b811277ef2c106dd7400b46f892921deb242e63d Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711035328 +0000	commit: add updatevars
+b811277ef2c106dd7400b46f892921deb242e63d 5bf464c388ecc8f20336d323bad20095b150f7ce Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711036046 +0000	pull: Fast-forward
+5bf464c388ecc8f20336d323bad20095b150f7ce e180ee1079810ed15b84a22b0c04468721c402be Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711037448 +0000	commit: add multicharacter variables, and multi-digit variable values
+e180ee1079810ed15b84a22b0c04468721c402be 204871fb8d2af9a08d6cfaac526bc99e12594964 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711116731 +0000	commit: add value data declaration
+204871fb8d2af9a08d6cfaac526bc99e12594964 fdef03d8ffb47327d53d283acadfc7fb6bd920ca Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711127187 +0000	pull: Fast-forward

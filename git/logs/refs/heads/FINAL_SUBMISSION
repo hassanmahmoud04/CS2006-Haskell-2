@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 d6e92cba512cdfd7ad3c63d1bab4f28ffe319fa3 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711551863 +0000	branch: Created from refs/remotes/origin/FINAL_SUBMISSION
+d6e92cba512cdfd7ad3c63d1bab4f28ffe319fa3 b2e52b9dc13b05836f85f1f8d3308a9b9b90ceeb Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711556033 +0000	commit: Add better error handling using Either
+b2e52b9dc13b05836f85f1f8d3308a9b9b90ceeb ff7d8f0068d1ad33ee534ba0b53b861b9f999317 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711556194 +0000	commit (merge): Add better error handling using Either (merge)
+ff7d8f0068d1ad33ee534ba0b53b861b9f999317 ae300dc31e8b1b272612116a1b6f30dffba47604 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711556638 +0000	commit: finalise merge
+ae300dc31e8b1b272612116a1b6f30dffba47604 f01c6882bd6139cbf46c47c14c33b0e0d31ae526 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711557280 +0000	commit: add syntactic sugar
+f01c6882bd6139cbf46c47c14c33b0e0d31ae526 be5db69c5dcb140c9c1a5d12bd4cc98790e9f470 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711558862 +0000	commit: error handling for string concatenation
+be5db69c5dcb140c9c1a5d12bd4cc98790e9f470 f4ba27dd3a7c4edf651da4c0e8b9abd54621505c Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711558869 +0000	pull: Merge made by the 'ort' strategy.
+f4ba27dd3a7c4edf651da4c0e8b9abd54621505c a1ec58a58ad0a62b3600e151ba0495c792c40a33 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711564269 +0000	pull: Fast-forward
+a1ec58a58ad0a62b3600e151ba0495c792c40a33 f2c1550acbb99c55f52ff9f3811b342db43de750 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711564364 +0000	commit: update README

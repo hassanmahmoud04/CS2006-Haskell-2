@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 6bac55fb8b3ee07e300d748562933155bc43f834 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710427935 +0000	commit (initial): initialise git, add readme
+6bac55fb8b3ee07e300d748562933155bc43f834 6bac55fb8b3ee07e300d748562933155bc43f834 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710427941 +0000	Branch: renamed refs/heads/master to refs/heads/main
+6bac55fb8b3ee07e300d748562933155bc43f834 6bac55fb8b3ee07e300d748562933155bc43f834 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710428084 +0000	Branch: renamed refs/heads/main to refs/heads/main
+6bac55fb8b3ee07e300d748562933155bc43f834 7e13ddb582258ad59a6b80034393f04d9c7953bd Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710430354 +0000	commit: add code file
+7e13ddb582258ad59a6b80034393f04d9c7953bd 95ed9105968628b83560d257ef8f2023ce07dfc6 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710528944 +0000	pull: Merge made by the 'ort' strategy.
+95ed9105968628b83560d257ef8f2023ce07dfc6 1673a055e11fdace9374d016e0d753cf85d62266 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1710949332 +0000	pull: Merge made by the 'ort' strategy.
+1673a055e11fdace9374d016e0d753cf85d62266 8b46ebe301a050989bcb50c39a729be1a1805304 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711129348 +0000	commit (merge): fix variable saving
+8b46ebe301a050989bcb50c39a729be1a1805304 029a3761e9830e3fc51a52339e7dfcf6a711094e Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711297541 +0000	pull: Fast-forward
+029a3761e9830e3fc51a52339e7dfcf6a711094e 9f5f786cdb45e34a23842cfc43c357edb6c845d2 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711302035 +0000	commit: update readme
+9f5f786cdb45e34a23842cfc43c357edb6c845d2 16cfe841eb9343c09b5c8b07b271a545c756e005 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711303577 +0000	pull: Fast-forward
+16cfe841eb9343c09b5c8b07b271a545c756e005 e67db927488a9c047c642eaeeeb4c1937217d002 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711308014 +0000	commit: add basic unit tests with quickcheck
+e67db927488a9c047c642eaeeeb4c1937217d002 d48c47e6149efbeda82a88efb1ae4a7e7b3194ff Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711310628 +0000	commit: add tests for integer, string, and float operations
+d48c47e6149efbeda82a88efb1ae4a7e7b3194ff c45c5297fee5440a11c160dda6daed8dd002729b Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711372870 +0000	commit: add ternary operator if then else
+c45c5297fee5440a11c160dda6daed8dd002729b fbcbc68bbab60c91fd67c0ba7dbf61c3f674b534 Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711488118 +0000	commit: add nothing case for equality evalution
+fbcbc68bbab60c91fd67c0ba7dbf61c3f674b534 589c2a3fd6eeb3197f5b3b73b7c985069bfce75f Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711488123 +0000	pull: Merge made by the 'ort' strategy.
+589c2a3fd6eeb3197f5b3b73b7c985069bfce75f d7e91c29eb2f842125e936a80d540174f33ea8be Hassan Mahmoud <hm253@st-andrews.ac.uk> 1711493485 +0000	commit (merge): Merge branch 'main' of https://github.com/hassanmahmoud04/CS2006-Haskell-2
