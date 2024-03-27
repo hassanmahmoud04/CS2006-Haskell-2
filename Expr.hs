@@ -4,6 +4,7 @@ import Parsing
 import Text.Read (readMaybe)
 import Data.Char (digitToInt)
 import Data.Fixed
+import Data.HashMap
 
 
 
@@ -16,6 +17,7 @@ instance Show Value where
     show (IntVal a) = show a
     show (StrVal a) = show a
     show (FloatVal a) = show a
+
 
 -- Expanded `Expr` to include variables and string literals (for ToString handling)
 data Expr = Add Expr Expr
@@ -33,14 +35,32 @@ data Expr = Add Expr Expr
           | Stringconcat Expr Expr 
           | Input
           | Neg Expr
-          deriving Show
+          | Equals Expr Expr
+        --deriving Show
+        --   | If Expr Command Command
+        --   | Then Expr
+        --   | Else Expr
+
+instance Show Expr where
+    show (Neg a) = show a
+    show (Var a) = show a
+    show (Val a) = show a
+    show (Abs a) = show a 
+    show (Power a b) = (show a) ++ "^" ++ (show b)
+    show (Multiply a b) = (show a) ++ "*" ++ (show b)
+    show (Stringconcat a b) = (show a) ++ "++" ++ (show b)
 
 -- These are the REPL commands
 data Command = Set Name Expr -- assign an expression to a variable name
              | Print Expr    -- evaluate an expression and print the result
-             | Repeat Int [Command]  -- Add this line if it's not already present
-             | Quit 
-
+             | Read Expr
+             | If Expr Command Command
+             | Repeat Int [Command]
+             | For Command Expr Command [Command]
+             
+             -- for(i = 5; i<54; i++){
+             --                     printf("hello world");
+             --                }
   deriving Show
 
 
@@ -71,7 +91,7 @@ floatconv x y =
         intPart + decPart
 
 
-eval :: [(Name, Value)] -> Expr -> Maybe Value
+eval :: Map Name Value -> Expr -> Maybe Value
 eval _ (Val x) = Just x
 eval vars (Add x y) = do
     a <- eval vars x
@@ -106,7 +126,7 @@ eval vars (Stringconcat x y) = do
     a <- eval vars x
     b <- eval vars y
     stringop (++) a b
-eval vars (Var n) = lookup n vars
+eval vars (Var n) = Data.HashMap.lookup n vars
 eval vars (ToString x) = do
     a <- eval vars x
     case a of
@@ -172,7 +192,6 @@ eval vars (Equals x y) = do
         (StrVal i, StrVal j)
             | i == j ->     Just (IntVal 1)
             | otherwise ->  Just (IntVal 0)
-        (_, _) -> Nothing
 
 sepBy1 :: Parser a -> Parser sep -> Parser [a]
 sepBy1 p sep = do
@@ -180,47 +199,97 @@ sepBy1 p sep = do
   rest <- many (sep >> p)
   return (first:rest)
 
-
 pRepeat :: Parser Command
 pRepeat = do
     string "repeat"
-    spaces -- Consume any spaces after the keyword.
+    space -- Consume any space after the keyword.
     n <- nat -- Parse the number of repetitions.
-    spaces -- Optional: consume any spaces before the '{'.
+    space -- Optional: consume any space before the '{'.
     char '{'
-    spaces -- Optional: consume any spaces before the first command.
-    cmds <- sepBy1 pCommand (spaces >> char ';' >> spaces) -- Parse the commands inside the block, separated by semicolons and surrounded by spaces.
-    spaces -- Optional: consume any spaces after the last command and before '}'.
+    space -- Optional: consume any space before the first command.
+    cmds <- sepBy1 pCommand (space >> char ';' >> space) -- Parse the commands inside the block, separated by semicolons and surrounded by space.
+    space -- Optional: consume any space after the last command and before '}'.
     char '}'
     return $ Repeat n cmds
+
+-- for(i = 5; i<54; i++){
+             --                     printf("hello world");
+             --                }
+
+
+pFor :: Parser Command 
+pFor = do
+    string "for"
+    space
+    char '('
+    space
+    cmd <- pSet
+    space 
+    char ';'
+    space 
+    e <- pExpr
+    space 
+    char ';'
+    space
+    cmd2 <- pCommand
+    space
+    char ')'
+    space
+    char '{'
+    space 
+    cmds <- sepBy1 pCommand (space >> char ';' >> space) -- Parse the commands inside the block, separated by semicolons and surrounded by space.
+    space 
+    char '}'
+    return $ For cmd e cmd2 cmds
+
 
 pPrint :: Parser Command
 pPrint = do
     string "print"
-    spaces
+    space
     e <- pExpr
     return (Print e)
 
 pSet :: Parser Command
 pSet = do 
     t <- many1 letter
-    spaces
+    space
     char '='
-    spaces
+    space
     e <- pExpr
     return (Set t e)
 
-pQuit :: Parser Command
-pQuit = do
-	string "quit"
-	return Quit
+pRead :: Parser Command
+pRead = do
+    string "read"
+    space 
+    e <- pExpr
+    return (Read e)
+
+pIf :: Parser Command
+pIf = do
+    string "if"
+    space
+    c <- pExpr
+    space
+    string "then"
+    space
+    t <- pCommand
+    space
+    string "else"
+    space
+    e <- pCommand
+    return (If c t e)
 
 pCommand :: Parser Command
-pCommand = spaces >> (
-  	    pRepeat
-  	||| pSet
+pCommand = space >> (
+    pRepeat
+    ||| pSet
     ||| pPrint
-    ||| pQuit)
+    ||| pRead
+    ||| pIf
+    ||| pFor)
+
 
 
 
@@ -244,7 +313,13 @@ pExpr = do t <- pTerm
                 space
                 e <- pExpr
                 return (Stringconcat t e)
-            ||| return t
+            ||| do 
+                space
+                string "=="
+                space
+                e <- pExpr
+                return (Equals t e) 
+            ||| return t    
 
 
 pFactor :: Parser Expr
@@ -326,3 +401,5 @@ pTerm = do f <- pFactor
                    space
                    return (Power f t)
             ||| return f)
+
+

@@ -30,7 +30,6 @@ instance Applicative Parser where
                 a' <- a
                 return (f' a')
 
-
 instance Monad Parser where
    return v                   =  P (\inp -> [(v,inp)])
    p >>= f                    =  P (\inp -> case parse p inp of
@@ -97,6 +96,9 @@ alphanum                      =  sat isAlphaNum
 
 char                          :: Char -> Parser Char
 char x                        =  sat (== x)
+
+-- charLiteral                   :: Parser Char
+-- charLiteral                   = sat (/= ' ')
 
 string                        :: String -> Parser String
 string []                     =  return []
