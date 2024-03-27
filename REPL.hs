@@ -89,7 +89,7 @@ process (If c t e) = do
             process t
         Right (IntVal 0) -> do 
             process e
-        Nothing -> do
+        Left str -> do
             outputStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
 
 process (For cmd e cmd2 cmds) = do
@@ -110,18 +110,6 @@ forHelper e cmd2 cmds = do
         Left str -> do
             outputStrLn ("Output did not evaluate to a boolean." ++ str)
 
-
-readRepl :: LState -> Command -> LState
-readRepl st (Set var expr) = case eval (vars st) expr of
-    Just val -> LState $ updateVars var val (vars st)
-    Nothing -> st
-readRepl st (Print expr) = case eval (vars st) expr of
-    Just val -> st
-    Nothing -> st
-
--- walkthrough :: [LState] -> [Command] -> IO ()
--- walkthrough [] []    = pure ()
--- walkthrough (x:xs) (y:ys) = do process x y
 
 -- Read, Eval, Print Loop
 -- This reads and parses the input using the pCommand parser, and calls
