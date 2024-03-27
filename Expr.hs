@@ -129,7 +129,7 @@ eval vars (Stringconcat x y) = do
 eval vars (Var n) = do 
     case (Data.HashMap.lookup n vars) of 
         Just x -> Right x
-        Nothing -> Left ("Variable " ++ n ++ " not defined")
+        Nothing -> Left $ "Variable " ++ n ++ " not defined"
 eval vars (ToString x) = do
     a <- eval vars x
     case a of
