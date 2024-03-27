@@ -16,10 +16,10 @@ import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class
 
-data LState = LState { vars :: Map Name Value }
+data LState = LState { vars :: Map Name Value, funcs :: Map Name [Command] }
 
 initLState :: LState
-initLState = LState empty
+initLState = LState empty empty
 
 -- Given a variable name and a value, return a new set of variables with
 -- that name and value added.
@@ -32,6 +32,13 @@ updateVars name val env = insert name val (dropVar name env)
 -- Return a new set of variables with the given name removed
 dropVar :: Name -> Map Name Value -> Map Name Value
 dropVar name env = delete name env
+
+
+updateFuncs :: Name -> [Command] -> Map Name [Command] -> Map Name [Command]
+updateFuncs name cmds env = insert name cmds (dropFunc name env)
+
+dropFunc :: Name -> Map Name [Command] -> Map Name [Command]
+dropFunc name env = delete name env
 
 
 process :: Command -> InputT (StateT LState IO) ()
@@ -52,6 +59,15 @@ process (Set var expr) = do
             let updatedVars = updateVars var val (vars st)
             lift $ put st{ vars = updatedVars }  -- Lift the put operation to update state
         Left str -> outputStrLn ("Error: " ++ str)
+process (SetFunc name cmds) = do
+    st <- lift get
+    let updatedFuncs = updateFuncs name cmds (funcs st)
+    lift $ put st{ funcs = updatedFuncs }
+process (RunFunc name) = do
+    st <- lift get
+    case funcEval (funcs st) name of
+        Just cmds -> mapM_ process cmds
+        Nothing -> outputStrLn "Error: Evaluation failed."
 process (Print expr) = do
     st <- lift get  -- Access the current state
     case eval (vars st) expr of
@@ -65,7 +81,6 @@ process (Read path) = do
     let allLines = lines file
     let parsedLines = Prelude.map (parse pCommand) (allLines)
     let cmds = Prelude.map (Data.Tuple.fst) (Prelude.map head parsedLines)
-    let sts = (Prelude.map (readRepl st) (cmds))
     (mapM_ process cmds)
 process (If c t e) = do
     st <- lift get 
@@ -74,8 +89,9 @@ process (If c t e) = do
             process t
         Right (IntVal 0) -> do 
             process e
-        Left str -> do
-            outputStrLn ("Error: " ++ str)
+        Nothing -> do
+            outputStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
+
 process (For cmd e cmd2 cmds) = do
     process cmd
     forHelper e cmd2 cmds
@@ -97,11 +113,11 @@ forHelper e cmd2 cmds = do
 
 readRepl :: LState -> Command -> LState
 readRepl st (Set var expr) = case eval (vars st) expr of
-    Right val -> LState $ updateVars var val (vars st)
-    Left str -> st
+    Just val -> LState $ updateVars var val (vars st)
+    Nothing -> st
 readRepl st (Print expr) = case eval (vars st) expr of
-    Right val -> st
-    Left str -> st
+    Just val -> st
+    Nothing -> st
 
 -- walkthrough :: [LState] -> [Command] -> IO ()
 -- walkthrough [] []    = pure ()

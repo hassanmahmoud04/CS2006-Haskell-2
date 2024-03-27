@@ -57,10 +57,8 @@ data Command = Set Name Expr -- assign an expression to a variable name
              | If Expr Command Command
              | Repeat Int [Command]
              | For Command Expr Command [Command]
-             
-             -- for(i = 5; i<54; i++){
-             --                     printf("hello world");
-             --                }
+             | SetFunc Name [Command]
+             | RunFunc Name
   deriving Show
 
 
@@ -90,6 +88,8 @@ floatconv x y =
     else
         intPart + decPart
 
+funcEval :: Map Name [Command] -> Name -> Maybe [Command]
+funcEval funcs n = Data.HashMap.lookup n funcs
 
 eval :: Map Name Value -> Expr -> Either String Value
 eval _ (Val x) = Right x
@@ -215,9 +215,6 @@ pRepeat = do
     char '}'
     return $ Repeat n cmds
 
--- for(i = 5; i<54; i++){
-             --                     printf("hello world");
-             --                }
 
 
 pFor :: Parser Command 
@@ -245,6 +242,25 @@ pFor = do
     char '}'
     return $ For cmd e cmd2 cmds
 
+pSetFunc :: Parser Command
+pSetFunc = do
+    string "setFunc"
+    space
+    name <- many1 letter
+    space
+    char '{'
+    space
+    cmds <- sepBy1 pCommand (space >> char ';' >> space)
+    space
+    char '}'
+    return $ SetFunc name cmds
+
+pRunFunc :: Parser Command
+pRunFunc = do
+    string "func"
+    space
+    name <- many1 letter
+    return $ RunFunc name
 
 pPrint :: Parser Command
 pPrint = do
@@ -291,7 +307,9 @@ pCommand = space >> (
     ||| pPrint
     ||| pRead
     ||| pIf
-    ||| pFor)
+    ||| pFor
+    ||| pSetFunc
+    ||| pRunFunc)
 
 
 
