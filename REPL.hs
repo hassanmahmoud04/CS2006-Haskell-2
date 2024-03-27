@@ -48,15 +48,15 @@ process (Set var Input) = do
 process (Set var expr) = do
     st <- lift get -- Lift the get operation from StateT into InputT (StateT IO LState)
     case eval (vars st) expr of
-        Just val -> do
+        Right val -> do
             let updatedVars = updateVars var val (vars st)
             lift $ put st{ vars = updatedVars }  -- Lift the put operation to update state
-        Nothing -> outputStrLn "Error: Evaluation failed."
+        Left str -> outputStrLn ("Error: " ++ str)
 process (Print expr) = do
     st <- lift get  -- Access the current state
     case eval (vars st) expr of
-        Just val -> outputStrLn $ show val
-        Nothing -> outputStrLn "Error: Evaluation failed."
+        Right val -> outputStrLn $ show val
+        Left str -> outputStrLn ("Error: " ++ str)
 process (Read path) = do
     st <- lift get
     let concatPath = Prelude.filter (/='"') ("./" ++ show path ++ ".txt")
@@ -70,13 +70,12 @@ process (Read path) = do
 process (If c t e) = do
     st <- lift get 
     case eval (vars st) c of
-        Just (IntVal 1) -> do
+        Right (IntVal 1) -> do
             process t
-        Just (IntVal 0) -> do 
+        Right (IntVal 0) -> do 
             process e
-        Nothing -> do
-            outputStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
-
+        Left str -> do
+            outputStrLn ("Error: " ++ str)
 process (For cmd e cmd2 cmds) = do
     process cmd
     forHelper e cmd2 cmds
@@ -86,23 +85,23 @@ forHelper :: Expr -> Command -> [Command] -> InputT (StateT LState IO) ()
 forHelper e cmd2 cmds = do 
     st <- lift get 
     case eval (vars st) e of
-        Just (IntVal 1) -> do
+        Right (IntVal 1) -> do
             process cmd2
             mapM_ process cmds
             forHelper e cmd2 cmds
-        Just (IntVal 0) -> do 
+        Right (IntVal 0) -> do 
             return ()
-        Nothing -> do
-            outputStrLn "Output did not evaluate to a boolean."
+        Left str -> do
+            outputStrLn ("Output did not evaluate to a boolean." ++ str)
 
 
 readRepl :: LState -> Command -> LState
 readRepl st (Set var expr) = case eval (vars st) expr of
-    Just val -> LState $ updateVars var val (vars st)
-    Nothing -> st
+    Right val -> LState $ updateVars var val (vars st)
+    Left str -> st
 readRepl st (Print expr) = case eval (vars st) expr of
-    Just val -> st
-    Nothing -> st
+    Right val -> st
+    Left str -> st
 
 -- walkthrough :: [LState] -> [Command] -> IO ()
 -- walkthrough [] []    = pure ()

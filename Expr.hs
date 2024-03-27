@@ -66,17 +66,17 @@ data Command = Set Name Expr -- assign an expression to a variable name
 
 
     
-integerop :: (Int -> Int -> Int) -> Value -> Value -> Maybe Value
-integerop f (IntVal x) (IntVal y) =  Just(IntVal(f x y))
-integerop f _ _ = Nothing -- not two integer values
+integerop :: (Int -> Int -> Int) -> Value -> Value -> Either String Value
+integerop f (IntVal x) (IntVal y) =  Right $ IntVal $ f x y
+integerop f _ _ = Left "Not two integer values" -- not two integer values
 
-stringop ::(String -> String -> String) -> Value -> Value -> Maybe Value
-stringop f (StrVal x) (StrVal y) =  Just(StrVal(f x y))
-stringop f _ _ = Nothing
+stringop ::(String -> String -> String) -> Value -> Value -> Either String Value
+stringop f (StrVal x) (StrVal y) =  Right $ StrVal $ f x y
+stringop f _ _ = Left "Not two string values"
 
-floatop :: (Float -> Float -> Float) -> Value -> Value -> Maybe Value
-floatop f (FloatVal x) (FloatVal y) = Just(FloatVal(f x y))
-floatop f _ _ = Nothing
+floatop :: (Float -> Float -> Float) -> Value -> Value -> Either String Value
+floatop f (FloatVal x) (FloatVal y) = Right $ FloatVal $ f x y
+floatop f _ _ = Left "Not two float values"
 
 
 floatconv :: Int -> Int -> Float
@@ -91,107 +91,110 @@ floatconv x y =
         intPart + decPart
 
 
-eval :: Map Name Value -> Expr -> Maybe Value
-eval _ (Val x) = Just x
+eval :: Map Name Value -> Expr -> Either String Value
+eval _ (Val x) = Right x
 eval vars (Add x y) = do
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j) -> integerop (+) a b
         (FloatVal i, FloatVal j) -> floatop (+) a b
-        _ -> Nothing
+        _ -> Left "Values must be consistent number types"
 eval vars (Subtract x y) = do  -- Assuming Subtract is part of Expr
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j) -> integerop (-) a b
         (FloatVal i, FloatVal j) -> floatop (-) a b
-        _ -> Nothing 
+        _ -> Left "Values must be consistent number types" 
 eval vars (Multiply x y) = do  -- Assuming Multiply is part of Expr
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j) -> integerop (*) a b 
         (FloatVal i, FloatVal j) -> floatop (*) a b
-        _ -> Nothing 
+        _ -> Left "Values must be consistent number types" 
 eval vars (Divide x y) = do  -- Assuming Divide is part of Expr
     a <- eval vars x
     b <- eval vars y
-    if b == IntVal(0) then Nothing  -- Guard against division by zero
+    if b == IntVal(0) then Left "Division by zero"  -- Guard against division by zero
         else case (a, b) of 
             (IntVal i, IntVal j) -> integerop (div) a b 
             (FloatVal i, FloatVal j) -> floatop (/) a b
-            _ -> Nothing 
+            _ -> Left "Values must be consistent number types" 
 eval vars (Stringconcat x y) = do 
     a <- eval vars x
     b <- eval vars y
     stringop (++) a b
-eval vars (Var n) = Data.HashMap.lookup n vars
+eval vars (Var n) = do 
+    case (Data.HashMap.lookup n vars) of 
+        Just x -> Right x
+        Nothing -> Left ("Variable " ++ n ++ " not defined")
 eval vars (ToString x) = do
     a <- eval vars x
     case a of
-        IntVal i -> return (StrVal (show i))
-        StrVal s -> return (StrVal s)
-        FloatVal s -> return (StrVal (show s))
+        IntVal i -> Right $ StrVal $ show i
+        StrVal s -> Right $ StrVal s
+        FloatVal s -> Right $ StrVal $ show s
 eval vars (ToInt x) = do
     a <- eval vars x
     case a of
         StrVal s -> do
-            n <- readMaybe s  
-            return (IntVal n)
+            case (readMaybe s) of
+                Just n -> return (IntVal n)
+                Nothing -> Left "Not an integer"
         IntVal i -> 
-            return (IntVal i)
+            Right $ IntVal i
         FloatVal f -> 
-            return (IntVal(round f))      
+            Right $ IntVal $ round f      
 eval vars (Abs x) = do
     a <- eval vars x
     case a of
-        IntVal i -> Just (IntVal (abs i))
-        FloatVal i -> Just (FloatVal (abs i))
-        _ -> Nothing  -- or handle other types as needed
+        IntVal i -> Right $ IntVal $ abs i
+        FloatVal i -> Right $ FloatVal $ abs i
+        _ -> Left "Not a number"  -- or handle other types as needed
 eval vars (Mod x y) = do
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j) -> integerop (mod) a b 
         (FloatVal i, FloatVal j) -> floatop (mod') a b
-        _ -> Nothing
+        _ -> Left "Values must be consistent number types" 
 eval vars (Power x y) = do
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j) -> integerop (^) a b 
         (FloatVal i, FloatVal j) -> floatop (**) a b
-        _ -> Nothing
+        _ -> Left "Values must be consistent number types" 
 eval vars (ToFloat x) = do
     a <- eval vars x
     case a of
         StrVal s -> do
-            n <- readMaybe s  
-            return (FloatVal n)
+            case (readMaybe s) of
+                Just n -> return (FloatVal n)
+                Nothing -> Left "Not a floating point number"
         IntVal i -> 
-            return (FloatVal (fromIntegral i))
+            Right $ FloatVal $ fromIntegral i
         FloatVal f -> 
-            return (FloatVal f)
+            Right $ FloatVal f
 eval vars (Neg x) = do
     a <- eval vars x
     case a of
-        IntVal i -> Just (IntVal (-i))
-        FloatVal i -> Just (FloatVal (-i))
-        _ -> Nothing
+        IntVal i -> Right $ IntVal (-i)
+        FloatVal i -> Right $ FloatVal (-i)
+        _ -> Left "Not a number" 
 eval vars (Equals x y) = do
     a <- eval vars x
     b <- eval vars y
     case (a, b) of 
         (IntVal i, IntVal j)
-            | i == j ->     Just (IntVal 1)
-            | otherwise ->  Just (IntVal 0)
+            | i == j ->     Right $ IntVal 1
         (FloatVal i, FloatVal j)
-            | i == j ->     Just (IntVal 1)
-            | otherwise ->  Just (IntVal 0)
+            | i == j ->     Right $ IntVal 1
         (StrVal i, StrVal j)
-            | i == j ->     Just (IntVal 1)
-            | otherwise ->  Just (IntVal 0)
+            | i == j ->     Right $ IntVal 1
+        _ -> Right $ IntVal 0
 
 sepBy1 :: Parser a -> Parser sep -> Parser [a]
 sepBy1 p sep = do
