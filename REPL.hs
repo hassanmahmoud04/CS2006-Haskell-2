@@ -76,7 +76,7 @@ process (Print expr) = do
 process (Read path) = do
     st <- lift get
     let concatPath = Prelude.filter (/='"') ("./" ++ show path ++ ".txt")
-    outputStrLn ("Reading from file:" ++ (show concatPath))
+    outputStrLn ("Reading from file: " ++ (show concatPath))
     file <- lift ( lift(readFile (concatPath)))
     let allLines = lines file
     let parsedLines = Prelude.map (parse pCommand) (allLines)
@@ -91,7 +91,6 @@ process (If c t e) = do
             process e
         Left str -> do
             outputStrLn "Error: Conditional statement failed. Usage: If <condition> then <command> else <command>."
-
 process (For cmd e cmd2 cmds) = do
     process cmd
     forHelper e cmd2 cmds

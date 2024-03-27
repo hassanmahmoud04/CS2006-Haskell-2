@@ -36,6 +36,8 @@ data Expr = Add Expr Expr
           | Input
           | Neg Expr
           | Equals Expr Expr
+          | Less Expr Expr
+          | More Expr Expr
         --deriving Show
         --   | If Expr Command Command
         --   | Then Expr
@@ -197,6 +199,24 @@ eval vars (Equals x y) = do
         (StrVal i, StrVal j)
             | i == j ->     Right $ IntVal 1
         _ -> Right $ IntVal 0
+eval vars (Less x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    case (a, b) of 
+        (IntVal i, IntVal j)
+            | i < j ->     Right $ IntVal 1
+        (FloatVal i, FloatVal j)
+            | i < j ->     Right $ IntVal 1
+        _ -> Right $ IntVal 0
+eval vars (More x y) = do
+    a <- eval vars x
+    b <- eval vars y
+    case (a, b) of 
+        (IntVal i, IntVal j)
+            | i > j ->     Right $ IntVal 1
+        (FloatVal i, FloatVal j)
+            | i > j ->     Right $ IntVal 1
+        _ -> Right $ IntVal 0
 
 sepBy1 :: Parser a -> Parser sep -> Parser [a]
 sepBy1 p sep = do
@@ -342,6 +362,18 @@ pExpr = do t <- pTerm
                 space
                 e <- pExpr
                 return (Equals t e) 
+            ||| do 
+                space
+                string "<"
+                space
+                e <- pExpr
+                return (Less t e)
+            ||| do
+                space
+                string ">"
+                space
+                e <- pExpr
+                return (More t e)
             ||| return t    
 
 
