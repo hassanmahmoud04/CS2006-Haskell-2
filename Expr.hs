@@ -125,7 +125,9 @@ eval vars (Divide x y) = do  -- Assuming Divide is part of Expr
 eval vars (Stringconcat x y) = do 
     a <- eval vars x
     b <- eval vars y
-    stringop (++) a b
+    case (a, b) of
+        (StrVal i, StrVal j) -> stringop (++) a b
+        _ -> Left "Values must be consistent string types"
 eval vars (Var n) = do 
     case (Data.HashMap.lookup n vars) of 
         Just x -> Right x
