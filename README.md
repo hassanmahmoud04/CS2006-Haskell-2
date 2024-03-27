@@ -4,7 +4,7 @@
 `cabal update`
 
 > Install required libraries
-`cabal install hashmap tuple quickCheck --lib`
+`cabal install hashmap tuple QuickCheck transformers --lib`
 
 > Build cabal executable
 `cabal build`
